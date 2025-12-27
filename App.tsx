@@ -217,6 +217,16 @@ const LessonSession = () => {
   // State
   const [mode, setMode] = useState<SessionMode>(SessionMode.EXPLORE);
   const [selectedSegment, setSelectedSegment] = useState<Segment | null>(null);
+  // Pick a random sentence for the final quiz when component mounts or lessonId changes
+  const [quizSentence, setQuizSentence] = useState(lesson?.sentences[0]);
+
+  useEffect(() => {
+    if (lesson) {
+        // Randomly select a sentence for the Final Quiz from this lesson
+        const randomIdx = Math.floor(Math.random() * lesson.sentences.length);
+        setQuizSentence(lesson.sentences[randomIdx]);
+    }
+  }, [lessonId]);
   
   // Reset mode when page changes
   useEffect(() => {
@@ -290,7 +300,7 @@ const LessonSession = () => {
         <div className="flex-1 flex flex-col justify-center">
            <div className="flex justify-between items-center mb-1">
              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-               {mode === SessionMode.EXPLORE ? 'FAHAMI (Explore)' : mode === SessionMode.BUILD ? 'SUSUN (Practice)' : 'UJIAN (Quiz)'}
+               {mode === SessionMode.EXPLORE ? 'FAHAMI (Explore)' : mode === SessionMode.BUILD ? 'SUSUN (Practice)' : 'UJIAN (Final)'}
              </span>
              <span className="text-[10px] font-bold text-[#1a1512]">{pageIndex + 1} / {totalPages}</span>
            </div>
@@ -305,13 +315,13 @@ const LessonSession = () => {
       </div>
 
       {/* CONTENT AREA */}
-      <div className="flex-1 w-full max-w-lg flex flex-col relative px-4 pt-6 pb-24">
+      <div className="flex-1 w-full max-w-lg flex flex-col relative px-4 pt-6 pb-24 overflow-y-auto">
         <AnimatePresence mode="wait">
           
           {/* MODE 1: EXPLORE */}
           {mode === SessionMode.EXPLORE && (
             <motion.div
-              key="explore"
+              key={`explore-${lessonId}-${pageIndex}`}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 20 }}
@@ -368,7 +378,7 @@ const LessonSession = () => {
           {/* MODE 2: BUILD */}
           {mode === SessionMode.BUILD && (
             <motion.div
-              key="build"
+              key={`build-${lessonId}-${pageIndex}`}
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 1.05 }}
@@ -385,7 +395,7 @@ const LessonSession = () => {
           {mode === SessionMode.QUIZ && (
              <motion.div key="quiz" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1">
                 <Quiz 
-                  sentence={currentSentence} 
+                  sentence={quizSentence || currentSentence} 
                   onComplete={() => {
                     markLessonComplete(lessonId || '');
                     navigate('/contents');
