@@ -1,8 +1,11 @@
 {
   "name": "durus-ai",
   "private": true,
-  "version": "1.0.1",
+  "version": "1.0.2",
   "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
@@ -13,7 +16,7 @@
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.23.0",
     "framer-motion": "^11.1.7",
-    "lucide-react": "^0.378.0",
+    "lucide-react": "^0.468.0",
     "recharts": "^2.12.7"
   },
   "devDependencies": {
