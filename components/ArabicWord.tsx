@@ -16,7 +16,10 @@ export const ArabicWord: React.FC<ArabicWordProps> = ({ segment, isSelected, isR
   
   // Logic: If hints are on, color code. 
   // If Selected/Related, override with high contrast colors.
-  let textColor = showHints ? TYPE_COLORS[segment.type] : 'text-[#1a1512]';
+  // SAFE FALLBACK: If TYPE_COLORS[segment.type] is undefined, default to dark color
+  let textColor = showHints 
+    ? (TYPE_COLORS[segment.type] || 'text-[#1a1512]') 
+    : 'text-[#1a1512]';
   
   if (isSelected) textColor = 'text-[#8a1c1c]'; // Focus Color
   if (isRelated) textColor = 'text-[#b45309]'; // Result Color (Gold/Amber)

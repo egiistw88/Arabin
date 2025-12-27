@@ -234,14 +234,22 @@ const LessonSession = () => {
   if (!lesson || !lesson.sentences || lesson.sentences.length === 0) return <Navigate to="/contents" />;
 
   const totalPages = lesson.sentences.length;
+  // Safety: Ensure pageIndex is valid before accessing array
   if (pageIndex < 0 || pageIndex >= totalPages) return <Navigate to={`/read/${lessonId}/0`} replace />;
   
   const currentSentence = lesson.sentences[pageIndex];
 
+  // Critical Safety Check: If currentSentence is undefined despite index check, redirect (prevent crash)
+  if (!currentSentence) return <Navigate to="/contents" />;
+
   // Logic: Check Relationship (Amil -> Ma'mul)
   const checkRelationship = (segId: string) => {
     if (!selectedSegment) return false;
-    return segId === selectedSegment.relatedToId || (currentSentence.segments.find(s => s.id === segId)?.relatedToId === selectedSegment.id);
+    // Guard against undefined currentSentence or segments
+    if (!currentSentence || !currentSentence.segments) return false;
+    
+    const segment = currentSentence.segments.find(s => s.id === segId);
+    return segId === selectedSegment.relatedToId || (segment?.relatedToId === selectedSegment.id);
   };
 
   const handleNext = () => {
@@ -326,7 +334,7 @@ const LessonSession = () => {
                  dir="rtl"
                >
                  <div className="flex flex-wrap justify-center gap-y-8 leading-[3]">
-                    {currentSentence.segments.map((segment) => (
+                    {currentSentence.segments && currentSentence.segments.map((segment) => (
                       <ArabicWord 
                         key={segment.id}
                         segment={segment}
