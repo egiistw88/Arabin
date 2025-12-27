@@ -314,7 +314,11 @@ const LessonSession = () => {
                     <Layers className="w-4 h-4 text-[#8a1c1c]" />
                     <span className="text-xs font-bold text-[#8a1c1c] uppercase">Bedah Logika</span>
                  </div>
-                 <AudioControl onPlay={() => {}} />
+                 {/* FIXED: Passing Text and Source instead of empty handler */}
+                 <AudioControl 
+                    text={currentSentence.arabicText} 
+                    audioSrc={currentSentence.audioSrc} 
+                 />
                </div>
 
                <div 
