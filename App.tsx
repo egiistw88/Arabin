@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { HashRouter, Routes, Route, useNavigate, useParams, Navigate, Outlet, useLocation, Link } from 'react-router-dom';
-import { ChevronRight, ChevronLeft, BookOpen, X, RotateCcw, Search, Sparkles, Play, Layers } from 'lucide-react';
+import { ChevronRight, ChevronLeft, BookOpen, X, RotateCcw, Search, Sparkles, Play, Layers, Home } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion'; 
 import { LESSON_DATA } from './services/data';
 import { ArabicWord } from './components/ArabicWord';
@@ -12,10 +12,9 @@ import { BottomNav } from './components/BottomNav';
 import { LessonPath } from './components/LessonPath';
 import { Segment, VocabularyItem, UserProgress } from './types';
 
-// --- STORAGE HELPER (ROBUST STREAK LOGIC) ---
+// --- STORAGE HELPER ---
 const STORAGE_KEY = 'durus_progress_v2';
 
-// Utility to get "YYYY-MM-DD" in local time correctly
 const getTodayString = () => {
   const d = new Date();
   const offset = d.getTimezoneOffset() * 60000;
@@ -35,8 +34,6 @@ const getProgress = (): UserProgress => {
       };
     }
     const parsed = JSON.parse(saved);
-    
-    // Schema migration safety
     return {
       lastLessonId: parsed.lastLessonId || LESSON_DATA[0].id,
       lastPageId: parsed.lastPageId || '0',
@@ -57,21 +54,16 @@ const getProgress = (): UserProgress => {
 
 const calculateNewStreak = (currentStreak: number, lastDate: string): { newStreak: number, isToday: boolean } => {
   const today = getTodayString();
-  
-  if (!lastDate) return { newStreak: 1, isToday: false }; // First time ever
-  if (lastDate === today) return { newStreak: currentStreak, isToday: true }; // Already studied today
+  if (!lastDate) return { newStreak: 1, isToday: false };
+  if (lastDate === today) return { newStreak: currentStreak, isToday: true };
 
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
   const yesterdayString = yesterday.toISOString().split('T')[0];
 
   if (lastDate === yesterdayString) {
-    // Perfect streak
     return { newStreak: currentStreak + 1, isToday: false }; 
   } else {
-    // Broken streak
-    // Check if the lastDate is effectively yesterday in local terms (handling potential edge cases)
-    // But for simplicity, if it's not today and not yesterday string literal, reset.
     return { newStreak: 1, isToday: false };
   }
 };
@@ -87,15 +79,12 @@ const saveProgress = (lessonId: string, pageId: string) => {
     currentStreak: newStreak,
     lastStudyDate: getTodayString()
   };
-  
   localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
   window.dispatchEvent(new Event('durus-progress-updated'));
 };
 
 const markLessonComplete = (lessonId: string) => {
   const current = getProgress();
-  
-  // Also update streak here in case they just finished a lesson without 'reading' movement
   const { newStreak } = calculateNewStreak(current.currentStreak, current.lastStudyDate);
 
   if (!current.completedLessons.includes(lessonId)) {
@@ -131,7 +120,7 @@ const DictionaryScreen = () => {
   );
 
   return (
-    <div className="p-6 max-w-md mx-auto">
+    <div className="p-6 max-w-md mx-auto min-h-screen bg-[#f8f9fa]">
       <h1 className="font-serif font-bold text-2xl mb-6">Kamus Saku</h1>
       <div className="relative mb-6">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -143,8 +132,8 @@ const DictionaryScreen = () => {
           onChange={(e) => setSearch(e.target.value)}
         />
       </div>
-      <div className="space-y-3">
-        {filtered.map((item, idx) => (
+      <div className="space-y-3 pb-20">
+        {filtered.length > 0 ? filtered.map((item, idx) => (
           <div key={idx} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex justify-between items-center">
             <div>
                <p className="font-bold font-serif text-[#1a1512]">{item.latin}</p>
@@ -155,7 +144,9 @@ const DictionaryScreen = () => {
                {item.plural && <p className="text-[10px] text-[#8a1c1c]">Jamak: {item.plural}</p>}
             </div>
           </div>
-        ))}
+        )) : (
+            <div className="text-center text-gray-400 mt-10 italic">Kata tidak ditemukan.</div>
+        )}
       </div>
     </div>
   );
@@ -164,8 +155,8 @@ const DictionaryScreen = () => {
 const ProfileScreen = () => {
   const progress = getProgress();
   return (
-    <div className="p-6 max-w-md mx-auto flex flex-col items-center justify-center min-h-[60vh]">
-       <div className="w-20 h-20 bg-gray-200 rounded-full mb-4 flex items-center justify-center relative">
+    <div className="p-6 max-w-md mx-auto flex flex-col items-center justify-center min-h-[80vh]">
+       <div className="w-20 h-20 bg-gray-200 rounded-full mb-4 flex items-center justify-center relative shadow-inner">
          <span className="font-serif font-bold text-2xl text-gray-400">A</span>
          <div className="absolute -bottom-2 -right-2 bg-[#8a1c1c] text-white text-xs px-2 py-1 rounded-full border-2 border-white font-bold">
             Lvl {progress.completedLessons.length + 1}
@@ -186,13 +177,12 @@ const ProfileScreen = () => {
 
        <button 
          onClick={() => {
-             // Debug Reset
-             if(confirm("Reset progress belajar?")) {
+             if(confirm("Yakin ingin menghapus semua progress?")) {
                  localStorage.removeItem(STORAGE_KEY);
                  window.location.reload();
              }
          }}
-         className="mt-12 text-red-400 text-xs font-bold uppercase tracking-widest hover:text-red-600"
+         className="mt-12 px-6 py-2 rounded-full border border-red-100 text-red-400 text-xs font-bold uppercase tracking-widest hover:bg-red-50 hover:text-red-600 transition-colors"
        >
          Reset Progress
        </button>
@@ -202,9 +192,9 @@ const ProfileScreen = () => {
 
 // --- INTELLIGENT LESSON SESSION ---
 enum SessionMode {
-  EXPLORE = 'explore', // Read & Click (Bedah Kalimat)
-  BUILD = 'build',     // Sentence Builder (Tarkib)
-  QUIZ = 'quiz'        // Final Test (Munaqasyah)
+  EXPLORE = 'explore', 
+  BUILD = 'build',
+  QUIZ = 'quiz'
 }
 
 const LessonSession = () => {
@@ -217,53 +207,49 @@ const LessonSession = () => {
   // State
   const [mode, setMode] = useState<SessionMode>(SessionMode.EXPLORE);
   const [selectedSegment, setSelectedSegment] = useState<Segment | null>(null);
-  // Pick a random sentence for the final quiz when component mounts or lessonId changes
-  const [quizSentence, setQuizSentence] = useState(lesson?.sentences[0]);
+  const [quizSentence, setQuizSentence] = useState<any>(null);
 
+  // Initialize Quiz Sentence once per lesson load
   useEffect(() => {
-    if (lesson) {
-        // Randomly select a sentence for the Final Quiz from this lesson
+    if (lesson && lesson.sentences.length > 0) {
         const randomIdx = Math.floor(Math.random() * lesson.sentences.length);
         setQuizSentence(lesson.sentences[randomIdx]);
     }
-  }, [lessonId]);
+  }, [lessonId]); // Only re-run if lesson changes
   
-  // Reset mode when page changes
+  // Reset state on page change
   useEffect(() => {
     setMode(SessionMode.EXPLORE);
     setSelectedSegment(null);
+    window.scrollTo(0,0);
   }, [pageIndex, lessonId]);
 
-  // Auto-save logic triggers
+  // Auto-save
   useEffect(() => {
     if (lessonId && mode === SessionMode.EXPLORE) {
         saveProgress(lessonId, pageIndex.toString());
     }
   }, [lessonId, pageIndex, mode]);
 
-  if (!lesson || !lesson.sentences || lesson.sentences.length === 0) return <Navigate to="/contents" />;
+  // --- SAFETY CHECKS ---
+  if (!lesson) return <Navigate to="/contents" />;
+  if (!lesson.sentences || lesson.sentences.length === 0) return <Navigate to="/contents" />;
 
   const totalPages = lesson.sentences.length;
-  // Safety: Ensure pageIndex is valid before accessing array
   if (pageIndex < 0 || pageIndex >= totalPages) return <Navigate to={`/read/${lessonId}/0`} replace />;
   
   const currentSentence = lesson.sentences[pageIndex];
-
-  // Critical Safety Check: If currentSentence is undefined despite index check, redirect (prevent crash)
   if (!currentSentence) return <Navigate to="/contents" />;
 
-  // Logic: Check Relationship (Amil -> Ma'mul)
   const checkRelationship = (segId: string) => {
     if (!selectedSegment) return false;
-    // Guard against undefined currentSentence or segments
-    if (!currentSentence || !currentSentence.segments) return false;
+    if (!currentSentence.segments) return false;
     
     const segment = currentSentence.segments.find(s => s.id === segId);
     return segId === selectedSegment.relatedToId || (segment?.relatedToId === selectedSegment.id);
   };
 
   const handleNext = () => {
-    // Flow: Explore -> Build -> Next Page / Quiz
     if (mode === SessionMode.EXPLORE) {
       setMode(SessionMode.BUILD);
     } else if (mode === SessionMode.BUILD) {
@@ -288,6 +274,9 @@ const LessonSession = () => {
       }
     }
   };
+
+  // Safe sentence for quiz
+  const finalQuizSentence = quizSentence || currentSentence;
 
   return (
     <div className="min-h-screen bg-[#f8f9fa] flex flex-col items-center">
@@ -315,24 +304,16 @@ const LessonSession = () => {
       </div>
 
       {/* CONTENT AREA */}
-      <div className="flex-1 w-full max-w-lg flex flex-col relative px-4 pt-6 pb-24 overflow-y-auto">
-        <AnimatePresence mode="wait">
-          
-          {/* MODE 1: EXPLORE */}
-          {mode === SessionMode.EXPLORE && (
-            <motion.div
-              key={`explore-${lessonId}-${pageIndex}`}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              className="flex-1 flex flex-col"
-            >
+      <div className="flex-1 w-full max-w-lg flex flex-col relative px-4 pt-6 pb-32 overflow-y-auto">
+        
+        {/* Removed AnimatePresence for Page Content to prevent white-screen crashes */}
+        {mode === SessionMode.EXPLORE && (
+            <div className="flex-1 flex flex-col animate-in fade-in duration-500">
                <div className="flex justify-between items-center mb-6">
                  <div className="flex items-center gap-2">
                     <Layers className="w-4 h-4 text-[#8a1c1c]" />
                     <span className="text-xs font-bold text-[#8a1c1c] uppercase">Bedah Logika</span>
                  </div>
-                 {/* FIXED: Passing Text and Source instead of empty handler */}
                  <AudioControl 
                     text={currentSentence.arabicText} 
                     audioSrc={currentSentence.audioSrc} 
@@ -344,7 +325,8 @@ const LessonSession = () => {
                  dir="rtl"
                >
                  <div className="flex flex-wrap justify-center gap-y-8 leading-[3]">
-                    {currentSentence.segments && currentSentence.segments.map((segment) => (
+                    {/* Safety map with fallback array */}
+                    {(currentSentence.segments || []).map((segment) => (
                       <ArabicWord 
                         key={segment.id}
                         segment={segment}
@@ -354,15 +336,18 @@ const LessonSession = () => {
                         showHints={true} 
                       />
                     ))}
+                    {(!currentSentence.segments || currentSentence.segments.length === 0) && (
+                        <p className="text-red-500 font-sans text-sm">Data kalimat tidak tersedia.</p>
+                    )}
                  </div>
                </div>
 
-               <motion.p className="text-center text-[#1a1512] font-serif text-lg leading-relaxed px-4 mb-6">
+               <p className="text-center text-[#1a1512] font-serif text-lg leading-relaxed px-4 mb-6">
                 "{currentSentence.translation}"
-               </motion.p>
+               </p>
 
                {!selectedSegment && (
-                <div className="mt-auto text-center">
+                <div className="mt-auto text-center py-4">
                     <p className="text-sm text-gray-400 animate-pulse">Ketuk kata Arab di atas untuk melihat hubungan sebab-akibat.</p>
                 </div>
                )}
@@ -372,55 +357,45 @@ const LessonSession = () => {
                     <TutorPersona selectedSegment={selectedSegment} />
                  </div>
                )}
-            </motion.div>
-          )}
+            </div>
+        )}
 
-          {/* MODE 2: BUILD */}
-          {mode === SessionMode.BUILD && (
-            <motion.div
-              key={`build-${lessonId}-${pageIndex}`}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 1.05 }}
-              className="flex-1"
-            >
+        {mode === SessionMode.BUILD && (
+            <div className="flex-1 animate-in zoom-in-95 duration-300">
                <SentenceBuilder 
                   sentence={currentSentence} 
                   onSuccess={handleNext}
                />
-            </motion.div>
-          )}
+            </div>
+        )}
 
-          {/* MODE 3: QUIZ */}
-          {mode === SessionMode.QUIZ && (
-             <motion.div key="quiz" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1">
+        {mode === SessionMode.QUIZ && (
+             <div className="flex-1 animate-in slide-in-from-right duration-300">
                 <Quiz 
-                  sentence={quizSentence || currentSentence} 
+                  sentence={finalQuizSentence} 
                   onComplete={() => {
                     markLessonComplete(lessonId || '');
                     navigate('/contents');
                   }} 
                 />
-             </motion.div>
-          )}
-
-        </AnimatePresence>
+             </div>
+        )}
       </div>
 
-      {/* FOOTER NAV */}
+      {/* FOOTER NAV - Always Visible if Explore */}
       {mode === SessionMode.EXPLORE && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 safe-bottom z-40">
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 safe-bottom z-50">
             <div className="max-w-lg mx-auto flex justify-between items-center">
                 <button 
                   onClick={handlePrev}
-                  className="p-3 rounded-xl bg-gray-100 text-gray-600 font-bold text-sm hover:bg-gray-200"
+                  className="p-3 rounded-xl bg-gray-100 text-gray-600 font-bold text-sm hover:bg-gray-200 transition-colors"
                 >
                   <ChevronLeft className="w-5 h-5" />
                 </button>
                 
                 <button 
                   onClick={handleNext}
-                  className="flex-1 ml-4 py-3 rounded-xl bg-[#1a1512] text-white font-bold text-sm uppercase tracking-widest shadow-lg hover:bg-[#333] flex items-center justify-center gap-2"
+                  className="flex-1 ml-4 py-3 rounded-xl bg-[#1a1512] text-white font-bold text-sm uppercase tracking-widest shadow-lg hover:bg-[#333] transition-colors flex items-center justify-center gap-2"
                 >
                   <span>Latih Susunan</span>
                   <ChevronRight className="w-4 h-4" />
@@ -478,7 +453,6 @@ const App = () => {
 
 const CoverScreen = () => {
   const progress = getProgress();
-  // Ensure we don't display undefined if user cleared cache but progress object exists with nulls
   const safeStreak = progress?.currentStreak || 0; 
   
   const particles = [
@@ -536,11 +510,10 @@ const CoverScreen = () => {
               </div>
             </Link>
           )}
-          {progress.lastLessonId && (
-            <Link to="/contents" className="py-3 text-[#1a1512] text-sm font-bold text-center hover:opacity-70 transition-opacity">
+          
+          <Link to="/contents" className="py-3 text-[#1a1512] text-sm font-bold text-center hover:bg-gray-50 rounded-xl transition-colors">
               Buka Peta Belajar
-            </Link>
-          )}
+          </Link>
         </div>
         
         <div className="mt-8 flex items-center gap-2 opacity-50">
