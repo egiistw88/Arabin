@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { HashRouter, Routes, Route, useNavigate, useParams, Navigate, Outlet, useLocation, Link } from 'react-router-dom';
-import { ChevronRight, ChevronLeft, BookOpen, X, RotateCcw, Search, Sparkles, Play, Layers, Home } from 'lucide-react';
+import { ChevronRight, ChevronLeft, BookOpen, X, RotateCcw, Search, Sparkles, Play, Layers, Home, RefreshCw, Quote } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion'; 
 import { LESSON_DATA } from './services/data';
 import { ArabicWord } from './components/ArabicWord';
@@ -11,6 +11,7 @@ import { AudioControl } from './components/AudioControl';
 import { BottomNav } from './components/BottomNav';
 import { LessonPath } from './components/LessonPath';
 import { Segment, VocabularyItem, UserProgress } from './types';
+import { SFX } from './services/sfx';
 
 // --- STORAGE HELPER ---
 const STORAGE_KEY = 'durus_progress_v2';
@@ -134,7 +135,14 @@ const DictionaryScreen = () => {
       </div>
       <div className="space-y-3 pb-20">
         {filtered.length > 0 ? filtered.map((item, idx) => (
-          <div key={idx} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex justify-between items-center">
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: idx * 0.05 }}
+            key={idx} 
+            className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex justify-between items-center"
+            onClick={() => SFX.playPop()}
+          >
             <div>
                <p className="font-bold font-serif text-[#1a1512]">{item.latin}</p>
                <p className="text-sm text-gray-500 italic">{item.meaning}</p>
@@ -143,7 +151,7 @@ const DictionaryScreen = () => {
                <p className="font-arabic text-2xl font-bold">{item.arabic}</p>
                {item.plural && <p className="text-[10px] text-[#8a1c1c]">Jamak: {item.plural}</p>}
             </div>
-          </div>
+          </motion.div>
         )) : (
             <div className="text-center text-gray-400 mt-10 italic">Kata tidak ditemukan.</div>
         )}
@@ -177,6 +185,7 @@ const ProfileScreen = () => {
 
        <button 
          onClick={() => {
+             SFX.playClick();
              if(confirm("Yakin ingin menghapus semua progress?")) {
                  localStorage.removeItem(STORAGE_KEY);
                  window.location.reload();
@@ -250,6 +259,7 @@ const LessonSession = () => {
   };
 
   const handleNext = () => {
+    SFX.playClick();
     if (mode === SessionMode.EXPLORE) {
       setMode(SessionMode.BUILD);
     } else if (mode === SessionMode.BUILD) {
@@ -262,6 +272,7 @@ const LessonSession = () => {
   };
 
   const handlePrev = () => {
+    SFX.playClick();
     if (mode === SessionMode.QUIZ) {
       setMode(SessionMode.BUILD);
     } else if (mode === SessionMode.BUILD) {
@@ -283,7 +294,7 @@ const LessonSession = () => {
       
       {/* HEADER */}
       <div className="w-full max-w-lg px-4 py-4 flex items-center gap-4 bg-white border-b border-gray-100 sticky top-0 z-30">
-        <button onClick={() => navigate('/contents')} className="p-1 text-gray-400 hover:text-red-500">
+        <button onClick={() => { SFX.playClick(); navigate('/contents'); }} className="p-1 text-gray-400 hover:text-red-500">
           <X className="w-6 h-6" />
         </button>
         <div className="flex-1 flex flex-col justify-center">
@@ -306,7 +317,6 @@ const LessonSession = () => {
       {/* CONTENT AREA */}
       <div className="flex-1 w-full max-w-lg flex flex-col relative px-4 pt-6 pb-32 overflow-y-auto">
         
-        {/* Removed AnimatePresence for Page Content to prevent white-screen crashes */}
         {mode === SessionMode.EXPLORE && (
             <div className="flex-1 flex flex-col animate-in fade-in duration-500">
                <div className="flex justify-between items-center mb-6">
@@ -374,6 +384,7 @@ const LessonSession = () => {
                 <Quiz 
                   sentence={finalQuizSentence} 
                   onComplete={() => {
+                    SFX.playFanfare();
                     markLessonComplete(lessonId || '');
                     navigate('/contents');
                   }} 
@@ -426,6 +437,16 @@ const LessonSession = () => {
 const App = () => {
   const [progress, setProgress] = useState(getProgress());
 
+  // Init SFX on user gesture
+  useEffect(() => {
+      const initSound = () => {
+          SFX.playClick();
+          window.removeEventListener('click', initSound);
+      };
+      window.addEventListener('click', initSound);
+      return () => window.removeEventListener('click', initSound);
+  }, []);
+
   useEffect(() => {
     const handleStorage = () => setProgress(getProgress());
     window.addEventListener('storage', handleStorage);
@@ -451,9 +472,28 @@ const App = () => {
   );
 };
 
+// --- NEW INTERACTIVE COVER SCREEN ---
 const CoverScreen = () => {
   const progress = getProgress();
   const safeStreak = progress?.currentStreak || 0; 
+  const [quoteIdx, setQuoteIdx] = useState(0);
+  const [rotation, setRotation] = useState(0);
+  
+  const quotes = [
+      { arab: "مَنْ جَدَّ وَجَدَ", arti: "Barangsiapa bersungguh-sungguh, ia akan dapat." },
+      { arab: "مَنْ صَبَرَ ظَفِرَ", arti: "Barangsiapa bersabar, ia akan beruntung." },
+      { arab: "اَلْعِلْمُ بِلَا عَمَلٍ كَالشَّجَرِ بِلَا ثَمَرٍ", arti: "Ilmu tanpa amal bagai pohon tak berbuah." }
+  ];
+
+  const handleLogoClick = () => {
+      SFX.playSuccess();
+      setRotation(r => r + 360);
+  };
+
+  const nextQuote = () => {
+      SFX.playPop();
+      setQuoteIdx((prev) => (prev + 1) % quotes.length);
+  };
   
   const particles = [
     { x: '10%', y: '20%', size: 40, delay: 0 },
@@ -474,28 +514,52 @@ const CoverScreen = () => {
           transition={{ duration: 5 + i, repeat: Infinity, ease: "easeInOut", delay: p.delay }}
         />
       ))}
+      
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 1 }}
         className="relative z-10 flex flex-col items-center max-w-md w-full"
       >
+        {/* INTERACTIVE LOGO */}
         <motion.div 
-           animate={{ y: [0, -8, 0] }}
-           transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-           className="mb-8"
+           animate={{ y: [0, -8, 0], rotate: rotation }}
+           transition={{ y: { duration: 4, repeat: Infinity, ease: "easeInOut" }, rotate: { duration: 0.6, type: "spring" } }}
+           className="mb-8 cursor-pointer"
+           onClick={handleLogoClick}
+           whileTap={{ scale: 0.9 }}
         >
-          <div className="w-24 h-24 bg-[#1a1512] rounded-3xl flex items-center justify-center shadow-xl rotate-3 border-b-4 border-r-4 border-[#8a1c1c]">
-             <span className="font-arabic text-6xl text-[#fdfbf7] mt-2 select-none">ع</span>
+          <div className="w-24 h-24 bg-[#1a1512] rounded-3xl flex items-center justify-center shadow-xl rotate-3 border-b-4 border-r-4 border-[#8a1c1c] group hover:scale-105 transition-transform">
+             <span className="font-arabic text-6xl text-[#fdfbf7] mt-2 select-none group-hover:text-[#8a1c1c] transition-colors">ع</span>
           </div>
         </motion.div>
+
         <h1 className="font-serif text-5xl text-[#1a1512] font-bold tracking-tight mb-2">Arabin</h1>
-        <div className="h-1 w-12 bg-[#8a1c1c] rounded-full mb-4"></div>
-        <p className="font-sans text-sm text-gray-500 uppercase tracking-[0.2em] mb-12">Belajar Logika Arab</p>
+        <div className="h-1 w-12 bg-[#8a1c1c] rounded-full mb-6"></div>
+        <p className="font-sans text-sm text-gray-500 uppercase tracking-[0.2em] mb-8">Belajar Logika Arab</p>
         
+        {/* INTERACTIVE FEATURE: KALAM HIKMAH */}
+        <div 
+            onClick={nextQuote}
+            className="w-full bg-white border border-dashed border-gray-300 rounded-xl p-4 mb-10 cursor-pointer relative group hover:border-[#8a1c1c] transition-colors"
+        >
+            <Quote className="absolute -top-3 left-4 w-6 h-6 bg-[#fdfbf7] text-[#8a1c1c] px-1" />
+            <motion.div
+                key={quoteIdx}
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                className="text-center"
+            >
+                <p className="font-arabic text-xl font-bold mb-2 text-[#1a1512]">{quotes[quoteIdx].arab}</p>
+                <p className="font-serif text-xs italic text-gray-500">"{quotes[quoteIdx].arti}"</p>
+            </motion.div>
+            <div className="absolute -bottom-3 right-4 bg-[#fdfbf7] px-2 text-[10px] text-gray-400 flex items-center gap-1 group-hover:text-[#8a1c1c]">
+                <RefreshCw className="w-3 h-3" /> Tap untuk ganti
+            </div>
+        </div>
+
         <div className="flex flex-col gap-4 w-full px-8">
           {progress.lastLessonId ? (
-            <Link to={`/read/${progress.lastLessonId}/${progress.lastPageId}`} className="group relative w-full">
+            <Link to={`/read/${progress.lastLessonId}/${progress.lastPageId}`} onClick={() => SFX.playClick()} className="group relative w-full">
               <div className="absolute inset-0 bg-[#8a1c1c] rounded-xl translate-y-1 group-hover:translate-y-2 transition-transform"></div>
               <div className="relative bg-[#1a1512] text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 group-hover:-translate-y-1 transition-transform border border-[#1a1512]">
                 <span>Lanjutkan</span>
@@ -503,7 +567,7 @@ const CoverScreen = () => {
               </div>
             </Link>
           ) : (
-            <Link to="/contents" className="group relative w-full">
+            <Link to="/contents" onClick={() => SFX.playClick()} className="group relative w-full">
               <div className="absolute inset-0 bg-[#dcd0b3] rounded-xl translate-y-1 group-hover:translate-y-2 transition-transform"></div>
               <div className="relative bg-[#1a1512] text-white py-4 rounded-xl font-bold text-center group-hover:-translate-y-1 transition-transform border border-[#1a1512]">
                 Mulai Belajar
@@ -511,7 +575,7 @@ const CoverScreen = () => {
             </Link>
           )}
           
-          <Link to="/contents" className="py-3 text-[#1a1512] text-sm font-bold text-center hover:bg-gray-50 rounded-xl transition-colors">
+          <Link to="/contents" onClick={() => SFX.playClick()} className="py-3 text-[#1a1512] text-sm font-bold text-center hover:bg-gray-50 rounded-xl transition-colors">
               Buka Peta Belajar
           </Link>
         </div>

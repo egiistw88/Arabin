@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Check, X, HelpCircle, Trophy } from 'lucide-react';
 import { Sentence, WordType } from '../types';
+import { SFX } from '../services/sfx';
 
 interface QuizProps {
   sentence: Sentence;
@@ -9,24 +10,14 @@ interface QuizProps {
 }
 
 export const Quiz: React.FC<QuizProps> = ({ sentence, onComplete }) => {
-  // Safety check for empty data
   if (!sentence || !sentence.segments) {
       return null;
   }
 
-  // --- INTELLIGENT QUIZ GENERATION ---
-  // Strategy:
-  // 1. Try to find an "Operator" (Amil) first - it's a key concept in this app.
-  // 2. If no Operator, find the "Mubtada" (Subject) or "Fa'il" (Doer).
-  // 3. Fallback to any Noun if explicit tags are missing.
-
-  // Using state to hold the target so it doesn't change on re-renders
   const [targetState, setTargetState] = useState<{ id: string, type: string } | null>(null);
-  
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
 
-  // Initialize Quiz Target Logic
   useEffect(() => {
     if (!sentence || !sentence.segments) return;
 
@@ -34,7 +25,6 @@ export const Quiz: React.FC<QuizProps> = ({ sentence, onComplete }) => {
     let type = 'OPERATOR';
 
     if (!targetSegment) {
-        // Try finding a specific grammatical subject
         targetSegment = sentence.segments.find(s => 
             s.grammaticalRole === 'Mubtada' || 
             s.grammaticalRole === 'Fa\'il' || 
@@ -44,7 +34,6 @@ export const Quiz: React.FC<QuizProps> = ({ sentence, onComplete }) => {
     }
 
     if (!targetSegment) {
-        // Fallback: Just find the first Noun
         targetSegment = sentence.segments.find(s => s.type === WordType.NOUN);
         type = 'NOUN';
     }
@@ -54,14 +43,15 @@ export const Quiz: React.FC<QuizProps> = ({ sentence, onComplete }) => {
     }
   }, [sentence]);
 
-
-  // Safety: If somehow no valid target is found
   if (!targetState) {
     return (
         <div className="flex flex-col items-center justify-center p-8 text-center min-h-[400px]">
-           <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-6 animate-bounce">
+           <motion.div 
+             initial={{ scale: 0 }} animate={{ scale: 1 }} type="spring"
+             className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-6"
+           >
               <Trophy className="w-10 h-10 text-green-700" />
-           </div>
+           </motion.div>
            <h3 className="font-serif font-bold text-2xl mb-2">Bab Selesai!</h3>
            <p className="text-gray-500 mb-8">Kamu telah menyelesaikan materi bacaan ini.</p>
            <button 
@@ -78,8 +68,12 @@ export const Quiz: React.FC<QuizProps> = ({ sentence, onComplete }) => {
     setSelectedId(id);
     const correct = id === targetState.id;
     setIsCorrect(correct);
+    
     if (correct) {
+      SFX.playSuccess();
       setTimeout(onComplete, 2000);
+    } else {
+      SFX.playError();
     }
   };
 
@@ -127,32 +121,40 @@ export const Quiz: React.FC<QuizProps> = ({ sentence, onComplete }) => {
       
       <div className="flex flex-wrap gap-4 justify-center mb-6" dir="rtl">
         {sentence.segments.map((seg) => (
-          <button
+          <motion.button
             key={seg.id}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             onClick={() => handleSelect(seg.id)}
             disabled={isCorrect === true}
             className={`
-              px-6 py-3 text-3xl font-arabic transition-all border-2 rounded-lg shadow-sm
+              px-6 py-3 text-3xl font-arabic transition-all border-2 rounded-lg shadow-sm relative
               ${selectedId === seg.id 
-                ? (isCorrect ? 'text-green-800 border-green-600 bg-green-50' : 'text-red-800 border-red-600 bg-red-50')
+                ? (isCorrect ? 'text-green-800 border-green-600 bg-green-50 z-10' : 'text-red-800 border-red-600 bg-red-50')
                 : 'text-[#1a1512] border-[#dcd0b3] hover:border-[#1a1512] hover:bg-[#f9fafb]'
               }
             `}
           >
             {seg.text}
-          </button>
+          </motion.button>
         ))}
       </div>
 
       {isCorrect !== null && (
         <motion.div 
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
+          initial={{ opacity: 0, scale: 0.5, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 200, damping: 15 }}
           className={`text-center font-bold font-serif text-lg flex flex-col items-center gap-2 mt-8 ${isCorrect ? 'text-green-700' : 'text-red-700'}`}
         >
           {isCorrect ? (
             <>
-              <Check className="w-12 h-12 border-4 border-current rounded-full p-2 mb-2" /> 
+              <motion.div 
+                initial={{ rotate: -45 }} animate={{ rotate: 0 }} 
+                className="bg-green-100 p-3 rounded-full border-2 border-green-600"
+              >
+                 <Check className="w-8 h-8" /> 
+              </motion.div>
               <span>Ahsanta! Jawabanmu Tepat.</span>
               <span className="text-xs text-black font-sans font-normal opacity-50">Mengalihkan ke menu...</span>
             </>

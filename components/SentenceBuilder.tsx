@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RefreshCcw, Check, AlertCircle } from 'lucide-react';
 import { Sentence, Segment } from '../types';
+import { SFX } from '../services/sfx';
 
 interface SentenceBuilderProps {
   sentence: Sentence;
@@ -35,12 +36,14 @@ export const SentenceBuilder: React.FC<SentenceBuilderProps> = ({ sentence, onSu
   };
 
   const handleAddWord = (segment: Segment) => {
+    SFX.playPop();
     setBuiltSentence([...builtSentence, segment]);
     setAvailableWords(availableWords.filter(w => w.id !== segment.id));
     setFeedback(null);
   };
 
   const handleRemoveWord = (segment: Segment) => {
+    SFX.playPop();
     setAvailableWords([...availableWords, segment]);
     setBuiltSentence(builtSentence.filter(w => w.id !== segment.id));
     setFeedback(null);
@@ -53,9 +56,11 @@ export const SentenceBuilder: React.FC<SentenceBuilderProps> = ({ sentence, onSu
     const correctString = sentence.segments.map(s => s.id).join('-');
 
     if (currentString === correctString) {
+      SFX.playSuccess();
       setFeedback('Ahsanta! Susunan kalimatmu tepat.');
       setTimeout(onSuccess, 1000);
     } else {
+      SFX.playError();
       // Intelligent Feedback Logic
       // Check if the first word is correct
       if (builtSentence.length > 0 && builtSentence[0].id !== sentence.segments[0].id) {

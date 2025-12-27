@@ -2,40 +2,45 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Segment } from '../types';
 import { TYPE_COLORS, BOUNCE } from '../constants';
+import { SFX } from '../services/sfx';
 
 interface ArabicWordProps {
   segment: Segment;
   isSelected: boolean;
-  isRelated: boolean; // True if this word is affected by the currently selected word
+  isRelated: boolean; 
   onClick: (segment: Segment) => void;
   showHints: boolean;
 }
 
 export const ArabicWord: React.FC<ArabicWordProps> = ({ segment, isSelected, isRelated, onClick, showHints }) => {
-  // Safety fallback if segment is undefined
   if (!segment) return null;
 
   const displayText = segment.text || '';
   
-  // Logic: If hints are on, color code. 
-  // If Selected/Related, override with high contrast colors.
-  // SAFE FALLBACK: If TYPE_COLORS[segment.type] is undefined, default to dark color
   let textColor = showHints 
     ? (TYPE_COLORS[segment.type] || 'text-[#1a1512]') 
     : 'text-[#1a1512]';
   
-  if (isSelected) textColor = 'text-[#8a1c1c]'; // Focus Color
-  if (isRelated) textColor = 'text-[#b45309]'; // Result Color (Gold/Amber)
+  if (isSelected) textColor = 'text-[#8a1c1c]'; 
+  if (isRelated) textColor = 'text-[#b45309]'; 
+
+  const isOperator = segment.type === 'Amil';
+
+  const handleClick = () => {
+      SFX.playPop(); // Play sound
+      onClick(segment);
+  };
 
   return (
     <motion.div
       variants={BOUNCE}
       initial="initial"
       whileTap="animate"
-      onClick={() => onClick(segment)}
+      whileHover={{ y: -3 }} // Lift effect on hover
+      onClick={handleClick}
       className="relative inline-block cursor-pointer px-2 mx-1 select-none group"
     >
-        {/* 1. Selection Highlight (The Focus) */}
+        {/* 1. Selection Highlight */}
         {isSelected && (
             <motion.div 
                 layoutId="highlight-bg"
@@ -45,7 +50,7 @@ export const ArabicWord: React.FC<ArabicWordProps> = ({ segment, isSelected, isR
             />
         )}
 
-        {/* 2. Relation Highlight (The Effect/Result) */}
+        {/* 2. Relation Highlight */}
         {isRelated && (
              <motion.div 
                 className="absolute inset-0 border-2 border-dashed border-[#b45309] rounded-lg -z-10"
@@ -55,19 +60,31 @@ export const ArabicWord: React.FC<ArabicWordProps> = ({ segment, isSelected, isR
             />
         )}
 
+        {/* Operator Pulse - Subtle hint for the brain */}
+        {showHints && isOperator && !isSelected && (
+            <motion.div 
+                className="absolute inset-0 bg-red-100 rounded-lg -z-10"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: [0, 0.3, 0] }}
+                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+            />
+        )}
+
         {/* The Word */}
-        <span className={`text-5xl md:text-7xl font-arabic font-bold ${textColor} drop-shadow-sm transition-colors duration-300`}>
+        <span className={`text-5xl md:text-7xl font-arabic font-bold ${textColor} drop-shadow-sm transition-colors duration-300 relative z-10`}>
             {displayText}
         </span>
       
       {/* 3. Logic Indicators (Dots) */}
-      {/* Jika ini Operator (Amil), beri titik merah di bawah */}
-      {showHints && segment.type === 'Amil' && !isSelected && (
-          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-[#8a1c1c] rounded-full opacity-50"></div>
+      {showHints && isOperator && !isSelected && (
+          <motion.div 
+            className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-[#8a1c1c] rounded-full opacity-50"
+            animate={{ scale: [1, 1.2, 1] }}
+            transition={{ duration: 1.5, repeat: Infinity }}
+          />
       )}
       
-      {/* 4. Vowel Emphasis (Visualizing the change) */}
-      {/* Jika word ini sedang 'isRelated' (kena dampak), highlight harakat akhirnya */}
+      {/* 4. Vowel Emphasis */}
       {isRelated && (
         <motion.span 
             className="absolute bottom-2 left-2 w-8 h-8 rounded-full border-2 border-[#b45309] opacity-30"
