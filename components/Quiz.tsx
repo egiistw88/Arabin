@@ -47,7 +47,9 @@ export const Quiz: React.FC<QuizProps> = ({ sentence, onComplete }) => {
     return (
         <div className="flex flex-col items-center justify-center p-8 text-center min-h-[400px]">
            <motion.div 
-             initial={{ scale: 0 }} animate={{ scale: 1 }} type="spring"
+             initial={{ scale: 0 }} 
+             animate={{ scale: 1 }} 
+             transition={{ type: "spring" }}
              className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-6"
            >
               <Trophy className="w-10 h-10 text-green-700" />
