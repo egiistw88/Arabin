@@ -18,11 +18,17 @@ export const SentenceBuilder: React.FC<SentenceBuilderProps> = ({ sentence, onSu
     if (sentence && sentence.segments) {
         resetChallenge();
     }
-  }, [sentence]);
+  }, [sentence]); // Reset whenever sentence changes
 
   const resetChallenge = () => {
-    // Fisher-Yates Shuffle
-    const shuffled = [...sentence.segments].sort(() => Math.random() - 0.5);
+    // Robust Fisher-Yates Shuffle
+    // To ensure the words are truly randomized
+    const shuffled = [...sentence.segments];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    
     setAvailableWords(shuffled);
     setBuiltSentence([]);
     setFeedback(null);
@@ -41,6 +47,8 @@ export const SentenceBuilder: React.FC<SentenceBuilderProps> = ({ sentence, onSu
   };
 
   const checkAnswer = () => {
+    if (!sentence || !sentence.segments) return;
+
     const currentString = builtSentence.map(s => s.id).join('-');
     const correctString = sentence.segments.map(s => s.id).join('-');
 
@@ -48,11 +56,18 @@ export const SentenceBuilder: React.FC<SentenceBuilderProps> = ({ sentence, onSu
       setFeedback('Ahsanta! Susunan kalimatmu tepat.');
       setTimeout(onSuccess, 1000);
     } else {
-      // Intelligent Feedback based on common mistakes (Simplified logic)
+      // Intelligent Feedback Logic
+      // Check if the first word is correct
       if (builtSentence.length > 0 && builtSentence[0].id !== sentence.segments[0].id) {
-         setFeedback("Hmm, permulaan kalimatnya kurang tepat. Coba cari Subjek (Mubtada) atau Kata Tunjuk.");
-      } else {
-         setFeedback("Urutan masih keliru. Coba rasakan alurnya.");
+         setFeedback("Awal kalimat belum tepat. Coba perhatikan lagi Mubtada atau Isim Isyarah-nya.");
+      } 
+      // Check if the last word is correct (usually the Khobar/Majrur)
+      else if (builtSentence.length === sentence.segments.length && 
+               builtSentence[builtSentence.length - 1].id !== sentence.segments[sentence.segments.length - 1].id) {
+         setFeedback("Akhiran kalimat sepertinya tertukar.");
+      } 
+      else {
+         setFeedback("Urutan masih keliru. Coba rasakan alur logikanya.");
       }
     }
   };
@@ -74,7 +89,7 @@ export const SentenceBuilder: React.FC<SentenceBuilderProps> = ({ sentence, onSu
       <div className="flex-1 bg-white rounded-xl border border-gray-200 p-4 mb-6 flex flex-wrap gap-2 items-center justify-center min-h-[100px] shadow-inner" dir="rtl">
         <AnimatePresence>
           {builtSentence.length === 0 && (
-             <p className="text-gray-300 text-sm font-serif italic absolute">Ketuk kata di bawah untuk menyusun...</p>
+             <p className="text-gray-300 text-sm font-serif italic absolute pointer-events-none">Ketuk kata di bawah untuk menyusun...</p>
           )}
           {builtSentence.map((word) => (
             <motion.button

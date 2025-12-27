@@ -1,20 +1,34 @@
 /**
  * Utility untuk menangani Text-to-Speech Bahasa Arab.
  * Menggunakan Web Speech API native browser sebagai fallback cerdas.
+ * Menerapkan Singleton Pattern untuk mencegah suara tumpang tindih.
  */
 
+// Global variable to track the currently playing audio instance
+let currentAudio: HTMLAudioElement | null = null;
+
 export const playArabicAudio = (text: string, audioUrl?: string, onEnd?: () => void): () => void => {
-  // 1. Coba Audio URL jika valid (bukan dummy example.com)
+  // 1. Cleanup: Hentikan audio atau TTS yang sedang berjalan
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio = null;
+  }
+  window.speechSynthesis.cancel();
+
+  // 2. Coba Audio URL jika valid (bukan dummy example.com)
   if (audioUrl && !audioUrl.includes('example.com') && !audioUrl.includes('placeholder')) {
     const audio = new Audio(audioUrl);
+    currentAudio = audio; // Track this instance
     
     const handleEnd = () => {
+      currentAudio = null;
       if (onEnd) onEnd();
     };
 
     const handleError = () => {
         // Fallback ke TTS jika file audio gagal load
         console.warn("Audio file unreachable, falling back to Native TTS");
+        currentAudio = null;
         speakNative(text, onEnd);
     };
 
@@ -25,18 +39,22 @@ export const playArabicAudio = (text: string, audioUrl?: string, onEnd?: () => v
     audio.play().catch(e => {
         console.warn("Autoplay blocked or failed, falling back to TTS", e);
         // Jika autoplay diblokir browser atau error lain, fallback ke TTS
+        currentAudio = null;
         speakNative(text, onEnd);
     });
 
-    // Return cleanup function to stop audio
+    // Return cleanup function to stop audio explicitly
     return () => {
-        audio.pause();
+        if (currentAudio === audio) {
+            audio.pause();
+            currentAudio = null;
+        }
         audio.removeEventListener('ended', handleEnd);
         audio.removeEventListener('error', handleError);
     };
   } 
   
-  // 2. Jika tidak ada file audio, langsung gunakan Native TTS
+  // 3. Jika tidak ada file audio, langsung gunakan Native TTS
   return speakNative(text, onEnd);
 };
 
@@ -48,12 +66,12 @@ const speakNative = (text: string, onEnd?: () => void): () => void => {
         return () => {};
     }
 
-    // Cancel antrian suara sebelumnya agar tidak tumpang tindih
+    // Cancel antrian suara sebelumnya (Double check)
     window.speechSynthesis.cancel();
 
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'ar-SA'; // Kode bahasa Arab Saudi
-    utterance.rate = 0.85; // Sedikit diperlambat agar cocok untuk pembelajar (default 1)
+    utterance.rate = 0.85; // Sedikit diperlambat agar cocok untuk pembelajar
     utterance.pitch = 1;
 
     // Upaya mendapatkan suara terbaik yang tersedia di perangkat user

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Check, X, HelpCircle, Trophy } from 'lucide-react';
 import { Sentence, WordType } from '../types';
@@ -15,23 +15,48 @@ export const Quiz: React.FC<QuizProps> = ({ sentence, onComplete }) => {
   }
 
   // --- INTELLIGENT QUIZ GENERATION ---
-  // Prioritize finding an "Operator" (Amil) as it's the hardest.
-  // If no operator (Lesson 1), fallback to identifying Noun (Subject).
-  
-  let targetType = WordType.OPERATOR;
-  let targetSegment = sentence.segments.find(s => s.type === WordType.OPERATOR);
-  
-  if (!targetSegment) {
-    targetType = WordType.NOUN;
-    // Try to find a Noun that is a Mubtada (usually the first noun or specific logic)
-    targetSegment = sentence.segments.find(s => s.type === WordType.NOUN);
-  }
+  // Strategy:
+  // 1. Try to find an "Operator" (Amil) first - it's a key concept in this app.
+  // 2. If no Operator, find the "Mubtada" (Subject) or "Fa'il" (Doer).
+  // 3. Fallback to any Noun if explicit tags are missing.
 
+  // Using state to hold the target so it doesn't change on re-renders
+  const [targetState, setTargetState] = useState<{ id: string, type: string } | null>(null);
+  
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
 
-  // Safety: If somehow sentence is empty or no valid target
-  if (!targetSegment) {
+  // Initialize Quiz Target Logic
+  useEffect(() => {
+    if (!sentence || !sentence.segments) return;
+
+    let targetSegment = sentence.segments.find(s => s.type === WordType.OPERATOR);
+    let type = 'OPERATOR';
+
+    if (!targetSegment) {
+        // Try finding a specific grammatical subject
+        targetSegment = sentence.segments.find(s => 
+            s.grammaticalRole === 'Mubtada' || 
+            s.grammaticalRole === 'Fa\'il' || 
+            s.grammaticalRole === 'Fail'
+        );
+        type = 'SUBJECT';
+    }
+
+    if (!targetSegment) {
+        // Fallback: Just find the first Noun
+        targetSegment = sentence.segments.find(s => s.type === WordType.NOUN);
+        type = 'NOUN';
+    }
+
+    if (targetSegment) {
+        setTargetState({ id: targetSegment.id, type });
+    }
+  }, [sentence]);
+
+
+  // Safety: If somehow no valid target is found
+  if (!targetState) {
     return (
         <div className="flex flex-col items-center justify-center p-8 text-center min-h-[400px]">
            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-6 animate-bounce">
@@ -51,7 +76,7 @@ export const Quiz: React.FC<QuizProps> = ({ sentence, onComplete }) => {
 
   const handleSelect = (id: string) => {
     setSelectedId(id);
-    const correct = id === targetSegment?.id;
+    const correct = id === targetState.id;
     setIsCorrect(correct);
     if (correct) {
       setTimeout(onComplete, 2000);
@@ -59,7 +84,7 @@ export const Quiz: React.FC<QuizProps> = ({ sentence, onComplete }) => {
   };
 
   const getQuestionText = () => {
-    if (targetType === WordType.OPERATOR) {
+    if (targetState.type === 'OPERATOR') {
         return (
             <>
                 Tunjukkan manakah <br/>
@@ -67,12 +92,20 @@ export const Quiz: React.FC<QuizProps> = ({ sentence, onComplete }) => {
                 dalam kalimat ini:
             </>
         );
-    } else {
+    } else if (targetState.type === 'SUBJECT') {
         return (
             <>
                 Tunjukkan manakah <br/>
-                <span className="font-bold text-[#1e40af] bg-[#dbeafe] px-2 rounded">SUBJEK (MUBTADA)</span> <br/>
-                atau Kata Benda utama:
+                <span className="font-bold text-[#1e40af] bg-[#dbeafe] px-2 rounded">SUBJEK (MUBTADA/FA'IL)</span> <br/>
+                atau Pelaku Utama:
+            </>
+        );
+    } else {
+         return (
+            <>
+                Tunjukkan manakah <br/>
+                <span className="font-bold text-[#1e40af] bg-[#dbeafe] px-2 rounded">KATA BENDA (ISIM)</span> <br/>
+                dalam kalimat ini:
             </>
         );
     }
