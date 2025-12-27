@@ -15,7 +15,9 @@ export const SentenceBuilder: React.FC<SentenceBuilderProps> = ({ sentence, onSu
   const [feedback, setFeedback] = useState<string | null>(null);
 
   useEffect(() => {
-    resetChallenge();
+    if (sentence && sentence.segments) {
+        resetChallenge();
+    }
   }, [sentence]);
 
   const resetChallenge = () => {
@@ -54,6 +56,9 @@ export const SentenceBuilder: React.FC<SentenceBuilderProps> = ({ sentence, onSu
       }
     }
   };
+
+  // Safety fallback
+  if (!sentence || !sentence.segments) return null;
 
   return (
     <div className="flex flex-col h-full bg-gray-50 rounded-2xl p-6 border-2 border-dashed border-gray-200">

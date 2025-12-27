@@ -12,7 +12,10 @@ interface ArabicWordProps {
 }
 
 export const ArabicWord: React.FC<ArabicWordProps> = ({ segment, isSelected, isRelated, onClick, showHints }) => {
-  const displayText = segment.text;
+  // Safety fallback if segment is undefined
+  if (!segment) return null;
+
+  const displayText = segment.text || '';
   
   // Logic: If hints are on, color code. 
   // If Selected/Related, override with high contrast colors.

@@ -9,6 +9,11 @@ interface QuizProps {
 }
 
 export const Quiz: React.FC<QuizProps> = ({ sentence, onComplete }) => {
+  // Safety check for empty data
+  if (!sentence || !sentence.segments) {
+      return null;
+  }
+
   // --- INTELLIGENT QUIZ GENERATION ---
   // Prioritize finding an "Operator" (Amil) as it's the hardest.
   // If no operator (Lesson 1), fallback to identifying Noun (Subject).
@@ -25,7 +30,7 @@ export const Quiz: React.FC<QuizProps> = ({ sentence, onComplete }) => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
 
-  // Safety: If somehow sentence is empty
+  // Safety: If somehow sentence is empty or no valid target
   if (!targetSegment) {
     return (
         <div className="flex flex-col items-center justify-center p-8 text-center min-h-[400px]">
