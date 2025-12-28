@@ -23,7 +23,6 @@ export const SentenceBuilder: React.FC<SentenceBuilderProps> = ({ sentence, onSu
 
   const resetChallenge = () => {
     // Robust Fisher-Yates Shuffle
-    // To ensure the words are truly randomized
     const shuffled = [...sentence.segments];
     for (let i = shuffled.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -52,9 +51,6 @@ export const SentenceBuilder: React.FC<SentenceBuilderProps> = ({ sentence, onSu
   const checkAnswer = () => {
     if (!sentence || !sentence.segments) return;
 
-    // FIX LOGIC: Bandingkan TEXT-nya, bukan ID-nya.
-    // Ini memungkinkan kata kembar (misal: 'Haza' di awal dan 'Haza' di tengah)
-    // untuk ditukar-tukar posisinya asalkan teks-nya benar.
     const currentString = builtSentence.map(s => s.text.trim()).join('|');
     const correctString = sentence.segments.map(s => s.text.trim()).join('|');
 
@@ -65,14 +61,10 @@ export const SentenceBuilder: React.FC<SentenceBuilderProps> = ({ sentence, onSu
     } else {
       SFX.playError();
       
-      // Intelligent Feedback Logic (Text Based)
       const correctSegments = sentence.segments;
-      
-      // Cek kata pertama
       if (builtSentence.length > 0 && builtSentence[0].text !== correctSegments[0].text) {
          setFeedback("Awal kalimat belum tepat. Coba perhatikan lagi kata pertamanya.");
       } 
-      // Cek kata terakhir (biasanya Khobar/Majrur)
       else if (builtSentence.length === sentence.segments.length && 
                builtSentence[builtSentence.length - 1].text !== correctSegments[correctSegments.length - 1].text) {
          setFeedback("Akhiran kalimat sepertinya tertukar.");
@@ -83,7 +75,6 @@ export const SentenceBuilder: React.FC<SentenceBuilderProps> = ({ sentence, onSu
     }
   };
 
-  // Safety fallback
   if (!sentence || !sentence.segments) return null;
 
   return (
@@ -97,19 +88,29 @@ export const SentenceBuilder: React.FC<SentenceBuilderProps> = ({ sentence, onSu
       </div>
 
       {/* Target Area (Slot) */}
-      <div className="flex-1 bg-white rounded-xl border border-gray-200 p-4 mb-6 flex flex-wrap gap-2 items-center justify-center min-h-[100px] shadow-inner" dir="rtl">
+      <div 
+        className="flex-1 bg-white rounded-xl border border-gray-200 p-4 mb-6 flex flex-wrap gap-2 items-center justify-center min-h-[120px] shadow-inner relative overflow-hidden" 
+        dir="rtl"
+        style={{ backgroundImage: 'repeating-linear-gradient(transparent 0px, transparent 29px, #e5e7eb 30px)' }}
+      >
         <AnimatePresence>
           {builtSentence.length === 0 && (
-             <p className="text-gray-300 text-sm font-serif italic absolute pointer-events-none">Ketuk kata di bawah untuk menyusun...</p>
+             <motion.p 
+                initial={{ opacity: 0 }} animate={{ opacity: 0.5 }}
+                className="text-gray-300 text-sm font-serif italic absolute pointer-events-none text-center w-full"
+            >
+                Ketuk kata di bawah untuk menyusun...
+            </motion.p>
           )}
           {builtSentence.map((word) => (
             <motion.button
+              layout
               key={word.id}
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.8, opacity: 0 }}
               onClick={() => handleRemoveWord(word)}
-              className="bg-[#fdfbf7] border border-[#1a1512] text-[#1a1512] font-arabic text-2xl px-4 py-2 rounded-lg shadow-sm hover:bg-red-50"
+              className="bg-[#fdfbf7] border border-[#1a1512] text-[#1a1512] font-arabic text-2xl px-4 py-1 rounded shadow-sm hover:bg-red-50 z-10"
             >
               {word.text}
             </motion.button>
@@ -121,6 +122,7 @@ export const SentenceBuilder: React.FC<SentenceBuilderProps> = ({ sentence, onSu
       <div className="h-8 mb-4 text-center">
          {feedback && (
             <motion.p 
+                key={feedback}
                 initial={{ opacity: 0, y: 5 }} 
                 animate={{ opacity: 1, y: 0 }}
                 className={`text-sm font-bold flex items-center justify-center gap-2 ${feedback.includes('Ahsanta') ? 'text-green-600' : 'text-amber-600'}`}

@@ -119,7 +119,6 @@ const updateUserName = (name: string) => {
     window.dispatchEvent(new Event('durus-progress-updated'));
 };
 
-// NEW: Helper to mark tutor guidance as seen PERSISTENTLY
 const markGuidanceSeen = (guidanceId: string) => {
     const current = getProgress();
     if (!current.seenGuidanceIds?.includes(guidanceId)) {
@@ -150,13 +149,16 @@ const useHashLocation = () => {
   return loc;
 };
 
+// QC UPDATE: Force scroll to top on navigation
 const navigate = (to: string) => {
   window.location.hash = to;
+  window.scrollTo(0, 0); 
 };
 
 // --- LAYOUTS ---
+// QC UPDATE: Added PropsWithChildren for strict typing
 const MainLayout = ({ children, currentPath }: React.PropsWithChildren<{ currentPath: string }>) => (
-  <div className="min-h-screen bg-[#f8f9fa] text-[#1a1512] pb-20">
+  <div className="min-h-screen bg-[#f8f9fa] text-[#1a1512] pb-24">
     {children}
     <BottomNav currentPath={currentPath} navigate={navigate} />
   </div>
@@ -169,7 +171,6 @@ const DictionaryScreen = () => {
   const [revealedCards, setRevealedCards] = useState<Set<string>>(new Set());
   const [playingWord, setPlayingWord] = useState<string | null>(null);
 
-  // Aggregate vocab grouped by Lesson
   const groupedVocab = LESSON_DATA.map(lesson => ({
     lessonTitle: lesson.title,
     lessonId: lesson.id,
@@ -200,7 +201,7 @@ const DictionaryScreen = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8f9fa] pb-24">
+    <div className="min-h-screen bg-[#f8f9fa]">
       {/* Sticky Header */}
       <div className="bg-white sticky top-0 z-20 px-6 py-4 border-b border-gray-100 shadow-sm">
           <div className="flex justify-between items-end mb-4">
@@ -277,7 +278,6 @@ const DictionaryScreen = () => {
                                     <h3 className="font-arabic text-3xl font-bold text-[#1a1512] text-right">{item.arabic}</h3>
                                 </div>
 
-                                {/* Divider or Blur overlay */}
                                 <div className="h-px bg-gray-100 w-full my-3"></div>
 
                                 {/* Back: Meaning */}
@@ -296,7 +296,6 @@ const DictionaryScreen = () => {
                                     </div>
                                 </div>
                                 
-                                {/* Tap Hint */}
                                 {isMemorizeMode && !isRevealed && (
                                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                                         <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest bg-white/80 px-2 py-1 rounded-full backdrop-blur-sm">
@@ -326,21 +325,17 @@ const ProfileScreen = () => {
   const [tempName, setTempName] = useState(progress.userName || 'Penuntut Ilmu');
   const [showResetDialog, setShowResetDialog] = useState(false);
 
-  // Gamification Logic
   const totalXp = progress.totalXp || 0;
   const level = Math.floor(totalXp / 500) + 1;
-  const nextLevelXp = level * 500;
   const currentLevelXp = totalXp - ((level - 1) * 500);
   const progressPercent = Math.min((currentLevelXp / 500) * 100, 100);
 
-  // Dynamic Title based on Level
   const getTitle = (lvl: number) => {
       if (lvl >= 10) return "Al-Alim (Ahli)";
       if (lvl >= 5) return "Thalib (Penuntut)";
       return "Mubtadi (Pemula)";
   };
 
-  // Badges Logic
   const badges = [
       { id: 'streak_3', icon: Flame, label: 'Istiqomah', desc: 'Streak 3 Hari', unlocked: progress.currentStreak >= 3 },
       { id: 'streak_7', icon: Flame, label: 'Mujahid', desc: 'Streak 7 Hari', unlocked: progress.currentStreak >= 7 },
@@ -360,7 +355,7 @@ const ProfileScreen = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8f9fa] pb-32">
+    <div className="min-h-screen bg-[#f8f9fa]">
        
        <ConfirmationDialog 
           isOpen={showResetDialog}
@@ -372,9 +367,8 @@ const ProfileScreen = () => {
           onCancel={() => setShowResetDialog(false)}
        />
 
-       {/* 1. HEADER PROFILE CARD */}
+       {/* HEADER */}
        <div className="bg-[#1a1512] text-[#fdfbf7] pt-10 pb-16 px-6 rounded-b-[40px] shadow-xl relative overflow-hidden">
-            {/* Background Pattern */}
             <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/arabesque.png')]"></div>
             
             <div className="relative z-10 max-w-md mx-auto text-center">
@@ -413,7 +407,6 @@ const ProfileScreen = () => {
                 
                 <p className="text-[#8a1c1c] font-sans text-xs font-bold uppercase tracking-[0.2em] mb-6">{getTitle(level)}</p>
 
-                {/* XP Progress Bar */}
                 <div className="bg-white/10 h-3 rounded-full overflow-hidden w-full max-w-[200px] mx-auto mb-2 relative">
                     <motion.div 
                         initial={{ width: 0 }} animate={{ width: `${progressPercent}%` }}
@@ -425,9 +418,8 @@ const ProfileScreen = () => {
             </div>
        </div>
 
-       <div className="max-w-md mx-auto px-6 -mt-10 relative z-20 space-y-6">
+       <div className="max-w-md mx-auto px-6 -mt-10 relative z-20 space-y-6 pb-24">
          
-         {/* 2. STATS GRID */}
          <div className="grid grid-cols-2 gap-4">
              <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-2">
                  <div className="p-2 bg-orange-50 rounded-full text-orange-600">
@@ -469,7 +461,6 @@ const ProfileScreen = () => {
              </div>
          </div>
 
-         {/* 3. BADGES SECTION */}
          <div>
              <h3 className="font-serif font-bold text-[#1a1512] mb-3 flex items-center gap-2">
                 <Medal className="w-4 h-4 text-[#8a1c1c]" />
@@ -488,7 +479,6 @@ const ProfileScreen = () => {
              </div>
          </div>
 
-         {/* 4. SETTINGS & ACTIONS */}
          <div>
             <h3 className="font-serif font-bold text-[#1a1512] mb-3 flex items-center gap-2">
                 <Settings className="w-4 h-4 text-[#8a1c1c]" />
@@ -558,25 +548,20 @@ const LessonSession = ({ lessonId, pageId, navigate }: LessonSessionProps) => {
   const pageIndex = isNaN(parseInt(pageId || '0')) ? 0 : parseInt(pageId || '0');
   
   const lesson = LESSON_DATA.find(l => l.id === lessonId);
-  const progress = getProgress(); // Get fresh progress
+  const progress = getProgress(); 
   
-  // State
   const [mode, setMode] = useState<SessionMode>(SessionMode.EXPLORE);
   const [selectedSegment, setSelectedSegment] = useState<Segment | null>(null);
   const [quizSentence, setQuizSentence] = useState<any>(null);
   const [showTutorDialog, setShowTutorDialog] = useState(false); 
   
-  // No local state for seen guidance anymore. We use the global progress.
-
-  // Initialize Quiz Sentence once per lesson load
   useEffect(() => {
     if (lesson && lesson.sentences.length > 0) {
         const randomIdx = Math.floor(Math.random() * lesson.sentences.length);
         setQuizSentence(lesson.sentences[randomIdx]);
     }
-  }, [lessonId]); // Only re-run if lesson changes
+  }, [lessonId]); 
   
-  // Reset state on page change
   useEffect(() => {
     setMode(SessionMode.EXPLORE);
     setSelectedSegment(null);
@@ -584,18 +569,15 @@ const LessonSession = ({ lessonId, pageId, navigate }: LessonSessionProps) => {
     window.scrollTo(0,0);
   }, [pageIndex, lessonId]);
 
-  // Auto-save
   useEffect(() => {
     if (lessonId && mode === SessionMode.EXPLORE) {
         saveProgress(lessonId, pageIndex.toString());
     }
   }, [lessonId, pageIndex, mode]);
 
-  // TRIGGER TUTOR GUIDANCE
   useEffect(() => {
     const currentSent = lesson?.sentences[pageIndex];
     if (mode === SessionMode.EXPLORE && currentSent?.tutorGuidance) {
-        // Check global history
         const hasSeen = progress.seenGuidanceIds?.includes(currentSent.id);
         
         if (!hasSeen) {
@@ -608,9 +590,7 @@ const LessonSession = ({ lessonId, pageId, navigate }: LessonSessionProps) => {
     }
   }, [pageIndex, mode, lesson]);
 
-  // --- SAFETY CHECKS ---
   if (!lesson) {
-    // Redirect logic handled by render
     setTimeout(() => navigate('/contents'), 0);
     return null;
   }
@@ -643,11 +623,13 @@ const LessonSession = ({ lessonId, pageId, navigate }: LessonSessionProps) => {
     SFX.playClick();
     if (mode === SessionMode.EXPLORE) {
       setMode(SessionMode.BUILD);
+      window.scrollTo(0, 0); // QC: Reset scroll on mode change
     } else if (mode === SessionMode.BUILD) {
       if (pageIndex < totalPages - 1) {
         navigate(`/read/${lessonId}/${pageIndex + 1}`);
       } else {
         setMode(SessionMode.QUIZ);
+        window.scrollTo(0, 0); // QC: Reset scroll on mode change
       }
     }
   };
@@ -667,7 +649,6 @@ const LessonSession = ({ lessonId, pageId, navigate }: LessonSessionProps) => {
     }
   };
 
-  // Safe sentence for quiz
   const finalQuizSentence = quizSentence || currentSentence;
 
   return (
@@ -704,7 +685,6 @@ const LessonSession = ({ lessonId, pageId, navigate }: LessonSessionProps) => {
             text={currentSentence.tutorGuidance || ''} 
             onDismiss={() => {
                 setShowTutorDialog(false);
-                // Mark as persistently seen
                 markGuidanceSeen(currentSentence.id);
             }}
         />
@@ -716,7 +696,6 @@ const LessonSession = ({ lessonId, pageId, navigate }: LessonSessionProps) => {
                     <Layers className="w-4 h-4 text-[#8a1c1c]" />
                     <span className="text-xs font-bold text-[#8a1c1c] uppercase">Bedah Logika</span>
                     
-                    {/* Recall Button: Only shows if guidance is available but hidden */}
                     {currentSentence.tutorGuidance && !showTutorDialog && (
                         <motion.button 
                             initial={{ scale: 0 }} animate={{ scale: 1 }}
@@ -741,7 +720,6 @@ const LessonSession = ({ lessonId, pageId, navigate }: LessonSessionProps) => {
                  dir="rtl"
                >
                  <div className="flex flex-wrap justify-center gap-y-8 leading-[3]">
-                    {/* Safety map with fallback array */}
                     {(currentSentence.segments || []).map((segment) => (
                       <ArabicWord 
                         key={segment.id}
@@ -964,12 +942,10 @@ const CoverScreen = ({ navigate }: CoverScreenProps) => {
   );
 };
 
-// --- MAIN APP COMPONENT ---
 const App = () => {
   const [progress, setProgress] = useState(getProgress());
   const path = useHashLocation();
 
-  // Init SFX on user gesture
   useEffect(() => {
       const initSound = () => {
           SFX.playClick();
@@ -1016,7 +992,6 @@ const App = () => {
         const pageId = parts[3];
         content = <LessonSession lessonId={lessonId} pageId={pageId} navigate={navigate} />;
   } else {
-        // Fallback
         window.location.hash = '/';
         content = null;
   }

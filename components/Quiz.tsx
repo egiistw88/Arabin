@@ -67,6 +67,8 @@ export const Quiz: React.FC<QuizProps> = ({ sentence, onComplete }) => {
   }
 
   const handleSelect = (id: string) => {
+    if (isCorrect === true) return; // Prevent clicking after success
+
     setSelectedId(id);
     const correct = id === targetState.id;
     setIsCorrect(correct);
@@ -135,6 +137,7 @@ export const Quiz: React.FC<QuizProps> = ({ sentence, onComplete }) => {
                 ? (isCorrect ? 'text-green-800 border-green-600 bg-green-50 z-10' : 'text-red-800 border-red-600 bg-red-50')
                 : 'text-[#1a1512] border-[#dcd0b3] hover:border-[#1a1512] hover:bg-[#f9fafb]'
               }
+              ${isCorrect === true && selectedId !== seg.id ? 'opacity-50 grayscale' : ''}
             `}
           >
             {seg.text}
@@ -142,31 +145,32 @@ export const Quiz: React.FC<QuizProps> = ({ sentence, onComplete }) => {
         ))}
       </div>
 
-      {isCorrect !== null && (
+      {isCorrect === true && (
         <motion.div 
-          initial={{ opacity: 0, scale: 0.5, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ type: "spring", stiffness: 200, damping: 15 }}
-          className={`text-center font-bold font-serif text-lg flex flex-col items-center gap-2 mt-8 ${isCorrect ? 'text-green-700' : 'text-red-700'}`}
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="absolute inset-0 bg-white/90 z-20 flex flex-col items-center justify-center rounded-sm"
         >
-          {isCorrect ? (
-            <>
               <motion.div 
-                initial={{ rotate: -45 }} animate={{ rotate: 0 }} 
-                className="bg-green-100 p-3 rounded-full border-2 border-green-600"
+                initial={{ rotate: -45, scale: 0 }} animate={{ rotate: 0, scale: 1 }} 
+                className="bg-green-100 p-4 rounded-full border-4 border-green-600 mb-4 shadow-xl"
               >
-                 <Check className="w-8 h-8" /> 
+                 <Check className="w-10 h-10 text-green-700" /> 
               </motion.div>
-              <span>Ahsanta! Jawabanmu Tepat.</span>
-              <span className="text-xs text-black font-sans font-normal opacity-50">Mengalihkan ke menu...</span>
-            </>
-          ) : (
-            <>
-              <X className="w-12 h-12 border-4 border-current rounded-full p-2 mb-2" /> 
-              <span>Khata' (Salah). Coba lagi.</span>
-            </>
-          )}
+              <h2 className="text-2xl font-serif font-bold text-green-800 mb-1">Ahsanta!</h2>
+              <p className="text-gray-500 text-sm">Jawabanmu Tepat.</p>
         </motion.div>
+      )}
+
+      {isCorrect === false && (
+         <motion.div 
+            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+            className="text-center text-red-600 font-bold mt-4"
+         >
+            <p className="flex items-center justify-center gap-2">
+                <X className="w-4 h-4" /> Khata' (Salah). Coba lagi.
+            </p>
+         </motion.div>
       )}
     </div>
   );

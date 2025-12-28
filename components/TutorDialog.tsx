@@ -13,7 +13,7 @@ export const TutorDialog: React.FC<TutorDialogProps> = ({ isVisible, text, onDis
   return (
     <AnimatePresence>
       {isVisible && (
-        <div className="fixed inset-0 z-[60] flex items-end justify-center pointer-events-none">
+        <div className="fixed inset-0 z-[999] flex items-end justify-center pointer-events-none">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
