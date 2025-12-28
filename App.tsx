@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { HashRouter, Routes, Route, useNavigate, useParams, Navigate, Outlet, useLocation, Link } from 'react-router-dom';
 import { ChevronRight, ChevronLeft, BookOpen, X, RotateCcw, Search, Sparkles, Play, Layers, Home, RefreshCw, Quote, GraduationCap, Eye, EyeOff, Volume2, Filter, Edit2, Settings, Trophy, Calendar, Flame, Star, LogOut, Github, Info, Medal, Music } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion'; 
 import { LESSON_DATA } from './services/data';
@@ -10,10 +9,11 @@ import { SentenceBuilder } from './components/SentenceBuilder';
 import { AudioControl } from './components/AudioControl';
 import { BottomNav } from './components/BottomNav';
 import { LessonPath } from './components/LessonPath';
-import { TutorDialog } from './components/TutorDialog'; // Import TutorDialog
+import { TutorDialog } from './components/TutorDialog'; 
+import { ConfirmationDialog } from './components/ConfirmationDialog';
 import { Segment, VocabularyItem, UserProgress } from './types';
 import { SFX } from './services/sfx';
-import { playArabicAudio } from './services/audio'; // Import audio service
+import { playArabicAudio } from './services/audio';
 
 // --- STORAGE HELPER ---
 const STORAGE_KEY = 'durus_progress_v2';
@@ -139,12 +139,26 @@ const resetGuidanceHistory = () => {
     window.dispatchEvent(new Event('durus-progress-updated'));
 };
 
+// --- CUSTOM ROUTER ---
+const useHashLocation = () => {
+  const [loc, setLoc] = useState(window.location.hash.replace('#', '') || '/');
+  useEffect(() => {
+    const handler = () => setLoc(window.location.hash.replace('#', '') || '/');
+    window.addEventListener('hashchange', handler);
+    return () => window.removeEventListener('hashchange', handler);
+  }, []);
+  return loc;
+};
+
+const navigate = (to: string) => {
+  window.location.hash = to;
+};
 
 // --- LAYOUTS ---
-const MainLayout = () => (
+const MainLayout = ({ children, currentPath }: { children: React.ReactNode, currentPath: string }) => (
   <div className="min-h-screen bg-[#f8f9fa] text-[#1a1512] pb-20">
-    <Outlet />
-    <BottomNav />
+    {children}
+    <BottomNav currentPath={currentPath} navigate={navigate} />
   </div>
 );
 
@@ -310,6 +324,7 @@ const ProfileScreen = () => {
   const progress = getProgress();
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState(progress.userName || 'Penuntut Ilmu');
+  const [showResetDialog, setShowResetDialog] = useState(false);
 
   // Gamification Logic
   const totalXp = progress.totalXp || 0;
@@ -339,9 +354,24 @@ const ProfileScreen = () => {
       setIsEditingName(false);
   };
 
+  const performReset = () => {
+      localStorage.removeItem(STORAGE_KEY);
+      window.location.reload();
+  };
+
   return (
     <div className="min-h-screen bg-[#f8f9fa] pb-32">
        
+       <ConfirmationDialog 
+          isOpen={showResetDialog}
+          title="Hapus Semua Data?"
+          message="PERINGATAN: Tindakan ini akan menghapus semua riwayat belajar, hafalan, dan XP Anda. Ini tidak dapat dibatalkan."
+          confirmLabel="Ya, Hapus Semuanya"
+          isDanger={true}
+          onConfirm={performReset}
+          onCancel={() => setShowResetDialog(false)}
+       />
+
        {/* 1. HEADER PROFILE CARD */}
        <div className="bg-[#1a1512] text-[#fdfbf7] pt-10 pb-16 px-6 rounded-b-[40px] shadow-xl relative overflow-hidden">
             {/* Background Pattern */}
@@ -487,24 +517,10 @@ const ProfileScreen = () => {
                     <ChevronRight className="w-4 h-4 text-gray-300" />
                  </button>
 
-                 <a 
-                    href="https://github.com/abudzan" target="_blank" rel="noreferrer"
-                    className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors border-b border-gray-100"
-                 >
-                    <div className="flex items-center gap-3">
-                        <Github className="w-4 h-4 text-gray-400" />
-                        <span className="text-sm font-bold text-[#1a1512]">Tentang Pengembang</span>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-gray-300" />
-                 </a>
-
                  <button 
                     onClick={() => {
                         SFX.playClick();
-                        if(confirm("PERINGATAN: Apakah Anda yakin ingin menghapus SEMUA data dan kemajuan belajar? Tindakan ini tidak dapat dibatalkan.")) {
-                            localStorage.removeItem(STORAGE_KEY);
-                            window.location.reload();
-                        }
+                        setShowResetDialog(true);
                     }}
                     className="w-full px-5 py-4 flex items-center justify-between hover:bg-red-50 transition-colors group"
                  >
@@ -517,7 +533,7 @@ const ProfileScreen = () => {
          </div>
 
          <div className="text-center pb-8 pt-4">
-             <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Arabin v1.0.3</p>
+             <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Arabin v1.0.4</p>
          </div>
 
        </div>
@@ -532,9 +548,13 @@ enum SessionMode {
   QUIZ = 'quiz'
 }
 
-const LessonSession = () => {
-  const { lessonId, pageId } = useParams();
-  const navigate = useNavigate();
+interface LessonSessionProps {
+    lessonId?: string;
+    pageId?: string;
+    navigate: (path: string) => void;
+}
+
+const LessonSession = ({ lessonId, pageId, navigate }: LessonSessionProps) => {
   const pageIndex = isNaN(parseInt(pageId || '0')) ? 0 : parseInt(pageId || '0');
   
   const lesson = LESSON_DATA.find(l => l.id === lessonId);
@@ -589,14 +609,27 @@ const LessonSession = () => {
   }, [pageIndex, mode, lesson]);
 
   // --- SAFETY CHECKS ---
-  if (!lesson) return <Navigate to="/contents" />;
-  if (!lesson.sentences || lesson.sentences.length === 0) return <Navigate to="/contents" />;
+  if (!lesson) {
+    // Redirect logic handled by render
+    setTimeout(() => navigate('/contents'), 0);
+    return null;
+  }
+  if (!lesson.sentences || lesson.sentences.length === 0) {
+    setTimeout(() => navigate('/contents'), 0);
+    return null;
+  }
 
   const totalPages = lesson.sentences.length;
-  if (pageIndex < 0 || pageIndex >= totalPages) return <Navigate to={`/read/${lessonId}/0`} replace />;
+  if (pageIndex < 0 || pageIndex >= totalPages) {
+      setTimeout(() => navigate(`/read/${lessonId}/0`), 0);
+      return null;
+  }
   
   const currentSentence = lesson.sentences[pageIndex];
-  if (!currentSentence) return <Navigate to="/contents" />;
+  if (!currentSentence) {
+    setTimeout(() => navigate('/contents'), 0);
+    return null;
+  }
 
   const checkRelationship = (segId: string) => {
     if (!selectedSegment) return false;
@@ -806,47 +839,12 @@ const LessonSession = () => {
   );
 };
 
-// --- MAIN APP COMPONENT ---
-const App = () => {
-  const [progress, setProgress] = useState(getProgress());
-
-  // Init SFX on user gesture
-  useEffect(() => {
-      const initSound = () => {
-          SFX.playClick();
-          window.removeEventListener('click', initSound);
-      };
-      window.addEventListener('click', initSound);
-      return () => window.removeEventListener('click', initSound);
-  }, []);
-
-  useEffect(() => {
-    const handleStorage = () => setProgress(getProgress());
-    window.addEventListener('storage', handleStorage);
-    window.addEventListener('durus-progress-updated', handleStorage);
-    return () => {
-      window.removeEventListener('storage', handleStorage);
-      window.removeEventListener('durus-progress-updated', handleStorage);
-    };
-  }, []);
-
-  return (
-    <HashRouter>
-      <Routes>
-        <Route path="/" element={<CoverScreen />} />
-        <Route element={<MainLayout />}>
-          <Route path="/contents" element={<LessonPath progress={progress} />} />
-          <Route path="/dictionary" element={<DictionaryScreen />} />
-          <Route path="/profile" element={<ProfileScreen />} />
-        </Route>
-        <Route path="/read/:lessonId/:pageId" element={<LessonSession />} />
-      </Routes>
-    </HashRouter>
-  );
-};
-
 // --- NEW INTERACTIVE COVER SCREEN ---
-const CoverScreen = () => {
+interface CoverScreenProps {
+    navigate: (path: string) => void;
+}
+
+const CoverScreen = ({ navigate }: CoverScreenProps) => {
   const progress = getProgress();
   const safeStreak = progress?.currentStreak || 0; 
   const [quoteIdx, setQuoteIdx] = useState(0);
@@ -882,7 +880,7 @@ const CoverScreen = () => {
         <motion.div
           key={i}
           className="absolute bg-[#1a1512] rounded-full opacity-[0.03]"
-          style={{ left: p.x, top: p.y, width: p.size, height: p.size }}
+          style={{ left: p.x, top: p.y, width: p.size, height: p.size } as any}
           animate={{ y: [0, -20, 0], scale: [1, 1.1, 1] }}
           transition={{ duration: 5 + i, repeat: Infinity, ease: "easeInOut", delay: p.delay }}
         />
@@ -932,25 +930,25 @@ const CoverScreen = () => {
 
         <div className="flex flex-col gap-4 w-full px-8">
           {progress.lastLessonId ? (
-            <Link to={`/read/${progress.lastLessonId}/${progress.lastPageId}`} onClick={() => SFX.playClick()} className="group relative w-full">
+            <div onClick={() => { SFX.playClick(); navigate(`/read/${progress.lastLessonId}/${progress.lastPageId}`); }} className="group relative w-full cursor-pointer">
               <div className="absolute inset-0 bg-[#8a1c1c] rounded-xl translate-y-1 group-hover:translate-y-2 transition-transform"></div>
               <div className="relative bg-[#1a1512] text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 group-hover:-translate-y-1 transition-transform border border-[#1a1512]">
                 <span>Lanjutkan</span>
                 <Play className="w-4 h-4 fill-current" />
               </div>
-            </Link>
+            </div>
           ) : (
-            <Link to="/contents" onClick={() => SFX.playClick()} className="group relative w-full">
+            <div onClick={() => { SFX.playClick(); navigate('/contents'); }} className="group relative w-full cursor-pointer">
               <div className="absolute inset-0 bg-[#dcd0b3] rounded-xl translate-y-1 group-hover:translate-y-2 transition-transform"></div>
               <div className="relative bg-[#1a1512] text-white py-4 rounded-xl font-bold text-center group-hover:-translate-y-1 transition-transform border border-[#1a1512]">
                 Mulai Belajar
               </div>
-            </Link>
+            </div>
           )}
           
-          <Link to="/contents" onClick={() => SFX.playClick()} className="py-3 text-[#1a1512] text-sm font-bold text-center hover:bg-gray-50 rounded-xl transition-colors">
+          <button onClick={() => { SFX.playClick(); navigate('/contents'); }} className="py-3 text-[#1a1512] text-sm font-bold text-center hover:bg-gray-50 rounded-xl transition-colors w-full">
               Buka Peta Belajar
-          </Link>
+          </button>
         </div>
         
         <div className="mt-8 flex items-center gap-2 opacity-50">
@@ -964,6 +962,66 @@ const CoverScreen = () => {
       </motion.div>
     </div>
   );
+};
+
+// --- MAIN APP COMPONENT ---
+const App = () => {
+  const [progress, setProgress] = useState(getProgress());
+  const path = useHashLocation();
+
+  // Init SFX on user gesture
+  useEffect(() => {
+      const initSound = () => {
+          SFX.playClick();
+          window.removeEventListener('click', initSound);
+      };
+      window.addEventListener('click', initSound);
+      return () => window.removeEventListener('click', initSound);
+  }, []);
+
+  useEffect(() => {
+    const handleStorage = () => setProgress(getProgress());
+    window.addEventListener('storage', handleStorage);
+    window.addEventListener('durus-progress-updated', handleStorage);
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('durus-progress-updated', handleStorage);
+    };
+  }, []);
+
+  let content;
+  if (path === '/' || path === '') {
+      content = <CoverScreen navigate={navigate} />;
+  } else if (path === '/contents') {
+      content = (
+          <MainLayout currentPath={path}>
+            <LessonPath progress={progress} navigate={navigate} />
+          </MainLayout>
+      );
+  } else if (path === '/dictionary') {
+      content = (
+          <MainLayout currentPath={path}>
+            <DictionaryScreen />
+          </MainLayout>
+      );
+  } else if (path === '/profile') {
+        content = (
+          <MainLayout currentPath={path}>
+            <ProfileScreen />
+          </MainLayout>
+      );
+  } else if (path.startsWith('/read/')) {
+        const parts = path.split('/');
+        const lessonId = parts[2];
+        const pageId = parts[3];
+        content = <LessonSession lessonId={lessonId} pageId={pageId} navigate={navigate} />;
+  } else {
+        // Fallback
+        window.location.hash = '/';
+        content = null;
+  }
+
+  return <div>{content}</div>;
 };
 
 export default App;
