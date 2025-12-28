@@ -37,6 +37,7 @@ export const LESSON_DATA: Lesson[] = [
         id: '1_1',
         arabicText: 'هَذَا بَيْتٌ',
         translation: 'Ini adalah rumah.',
+        tutorGuidance: "Ahlan! Mari kita mulai dari yang paling dasar. Perhatikan kata 'Haza' (Ini). Dalam Bahasa Arab, kata tunjuk ini khusus untuk benda muzakkar (maskulin) jarak dekat.",
         segments: [
           { id: '1_1_1', text: 'هَذَا', type: WordType.NOUN, logicId: LogicId.DEMONSTRATIVE, grammaticalRole: 'Mubtada', explanation: 'Kata Tunjuk jarak dekat (Ini).' },
           { id: '1_1_2', text: 'بَيْتٌ', type: WordType.NOUN, logicId: LogicId.DEFAULT_NOUN, grammaticalRole: 'Khobar', explanation: 'Benda yang ditunjuk (Rumah).' }
@@ -64,6 +65,7 @@ export const LESSON_DATA: Lesson[] = [
         id: '1_4',
         arabicText: 'مَا هَذَا؟ هَذَا قَلَمٌ',
         translation: 'Apa ini? Ini pena.',
+        tutorGuidance: "Untuk bertanya 'Apa Ini?', kita gunakan 'Ma Haza'. Ingat baik-baik: Kata 'Ma' hanya digunakan untuk benda mati (tidak berakal).",
         segments: [
           { id: '1_4_1', text: 'مَا', type: WordType.PARTICLE, logicId: LogicId.QUESTION_TOOL, grammaticalRole: 'Istifham', explanation: 'Kata tanya untuk benda mati.' },
           { id: '1_4_2', text: 'هَذَا', type: WordType.NOUN, logicId: LogicId.DEMONSTRATIVE, grammaticalRole: 'Mubtada', explanation: 'Ini.' },
@@ -75,6 +77,7 @@ export const LESSON_DATA: Lesson[] = [
         id: '1_5',
         arabicText: 'أَهَذَا بَيْتٌ؟ لَا، هَذَا مَسْجِدٌ',
         translation: 'Apakah ini rumah? Bukan, ini masjid.',
+        tutorGuidance: "Sekarang perhatikan 'Hamzah' (أَ) di depan kalimat. Ini cara bertanya 'Apakah' yang jawabannya harus 'Ya' atau 'Tidak'.",
         segments: [
           { id: '1_5_1', text: 'أَ', type: WordType.PARTICLE, logicId: LogicId.QUESTION_TOOL, grammaticalRole: 'Hamzah Istifham', explanation: 'Apakah (Pertanyaan Ya/Tidak).' },
           { id: '1_5_2', text: 'هَذَا', type: WordType.NOUN, logicId: LogicId.DEMONSTRATIVE, grammaticalRole: 'Mubtada', explanation: 'Ini.' },
@@ -112,6 +115,7 @@ export const LESSON_DATA: Lesson[] = [
         id: '1_8',
         arabicText: 'مَنْ هَذَا؟ هَذَا طَبِيْبٌ',
         translation: 'Siapa ini? Ini dokter.',
+        tutorGuidance: "Perbedaan penting! Untuk menanyakan Manusia (Berakal) seperti dokter atau guru, kita HARUS memakai 'Man' (Siapa), bukan 'Ma'.",
         segments: [
           { id: '1_8_1', text: 'مَنْ', type: WordType.PARTICLE, logicId: LogicId.QUESTION_TOOL, grammaticalRole: 'Istifham', explanation: 'Kata tanya untuk yang berakal (Siapa).' },
           { id: '1_8_2', text: 'هَذَا', type: WordType.NOUN, logicId: LogicId.DEMONSTRATIVE, grammaticalRole: 'Mubtada', explanation: 'Ini.' },
@@ -138,6 +142,7 @@ export const LESSON_DATA: Lesson[] = [
         id: '2_1',
         arabicText: 'مَا ذَلِكَ؟ ذَلِكَ نَجْمٌ',
         translation: 'Apa itu? Itu bintang.',
+        tutorGuidance: "Jika bendanya JAUH, kita ganti 'Haza' menjadi 'Zalika'. Kaidahnya sama, hanya jaraknya yang berbeda.",
         segments: [
           { id: '2_1_1', text: 'مَا', type: WordType.PARTICLE, logicId: LogicId.QUESTION_TOOL, grammaticalRole: 'Isim Istifham', explanation: 'Kata tanya benda.' },
           { id: '2_1_2', text: 'ذَلِكَ', type: WordType.NOUN, logicId: LogicId.DEMONSTRATIVE, grammaticalRole: 'Mubtada', explanation: 'Kata tunjuk JAUH (Itu).' },
@@ -182,6 +187,7 @@ export const LESSON_DATA: Lesson[] = [
         id: '3_1',
         arabicText: 'اَلْقَلَمُ مَكْسُوْرٌ',
         translation: 'Pena itu rusak.',
+        tutorGuidance: "Perhatikan perubahannya. Jika ada 'Al' (اَلْـ) di depan, maka Tanwin (un) di belakang HARUS HILANG. 'Qolamun' menjadi 'Al-Qolamu'. Tidak boleh 'Al-Qolamun'.",
         segments: [
           { id: '3_1_1', text: 'اَلْقَلَمُ', type: WordType.NOUN, logicId: LogicId.DEFAULT_NOUN, grammaticalRole: 'Mubtada', explanation: 'Ma\'rifah (Ada Al).' },
           { id: '3_1_2', text: 'مَكْسُوْرٌ', type: WordType.NOUN, logicId: LogicId.DEFAULT_NOUN, grammaticalRole: 'Khobar', explanation: 'Rusak.' }
@@ -220,6 +226,7 @@ export const LESSON_DATA: Lesson[] = [
         id: '4_1',
         arabicText: 'مُحَمَّدٌ فِي الْغُرْفَةِ',
         translation: 'Muhammad ada di dalam kamar.',
+        tutorGuidance: "Ini adalah salah satu konsep terpenting! Kata 'Fi' (Di dalam) bersifat seperti MAGNET. Ia menarik harakat kata setelahnya ke bawah, menjadi Kasrah (i). Lihat kata 'Al-Ghurfati'.",
         segments: [
           { id: '4_1_1', text: 'مُحَمَّدٌ', type: WordType.NOUN, logicId: LogicId.DEFAULT_NOUN, grammaticalRole: 'Mubtada', explanation: 'Nama orang (Alam) umumnya bertanwin "un". Subjek.', vowelEnding: 'un' },
           { id: '4_1_2', text: 'فِي', type: WordType.OPERATOR, logicId: LogicId.PREPOSITION_TRIGGER, grammaticalRole: 'Harf Jar', explanation: '[OPERATOR] Huruf Jar ibarat MAGNET. Ia menarik harakat kata setelahnya ke bawah.' },

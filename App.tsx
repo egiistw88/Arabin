@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { HashRouter, Routes, Route, useNavigate, useParams, Navigate, Outlet, useLocation, Link } from 'react-router-dom';
-import { ChevronRight, ChevronLeft, BookOpen, X, RotateCcw, Search, Sparkles, Play, Layers, Home, RefreshCw, Quote } from 'lucide-react';
+import { ChevronRight, ChevronLeft, BookOpen, X, RotateCcw, Search, Sparkles, Play, Layers, Home, RefreshCw, Quote, GraduationCap } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion'; 
 import { LESSON_DATA } from './services/data';
 import { ArabicWord } from './components/ArabicWord';
@@ -10,6 +10,7 @@ import { SentenceBuilder } from './components/SentenceBuilder';
 import { AudioControl } from './components/AudioControl';
 import { BottomNav } from './components/BottomNav';
 import { LessonPath } from './components/LessonPath';
+import { TutorDialog } from './components/TutorDialog'; // Import TutorDialog
 import { Segment, VocabularyItem, UserProgress } from './types';
 import { SFX } from './services/sfx';
 
@@ -217,6 +218,8 @@ const LessonSession = () => {
   const [mode, setMode] = useState<SessionMode>(SessionMode.EXPLORE);
   const [selectedSegment, setSelectedSegment] = useState<Segment | null>(null);
   const [quizSentence, setQuizSentence] = useState<any>(null);
+  const [showTutorDialog, setShowTutorDialog] = useState(false); // Tutor Dialog State
+  const [seenGuidance, setSeenGuidance] = useState<Set<string>>(new Set()); // Track which guidance has been shown in this session
 
   // Initialize Quiz Sentence once per lesson load
   useEffect(() => {
@@ -230,6 +233,7 @@ const LessonSession = () => {
   useEffect(() => {
     setMode(SessionMode.EXPLORE);
     setSelectedSegment(null);
+    setShowTutorDialog(false); // Reset first
     window.scrollTo(0,0);
   }, [pageIndex, lessonId]);
 
@@ -239,6 +243,22 @@ const LessonSession = () => {
         saveProgress(lessonId, pageIndex.toString());
     }
   }, [lessonId, pageIndex, mode]);
+
+  // TRIGGER TUTOR GUIDANCE
+  useEffect(() => {
+    // Only trigger in Explore mode, if guidance exists, and IF NOT SEEN YET
+    const currentSent = lesson?.sentences[pageIndex];
+    if (mode === SessionMode.EXPLORE && currentSent?.tutorGuidance) {
+        if (!seenGuidance.has(currentSent.id)) {
+            // Small delay to let the page settle
+            const timer = setTimeout(() => {
+                SFX.playPop(); // Alert sound
+                setShowTutorDialog(true);
+            }, 600);
+            return () => clearTimeout(timer);
+        }
+    }
+  }, [pageIndex, mode, lesson, seenGuidance]);
 
   // --- SAFETY CHECKS ---
   if (!lesson) return <Navigate to="/contents" />;
@@ -317,12 +337,37 @@ const LessonSession = () => {
       {/* CONTENT AREA */}
       <div className="flex-1 w-full max-w-lg flex flex-col relative px-4 pt-6 pb-32 overflow-y-auto">
         
+        {/* TUTOR POPUP DIALOG */}
+        <TutorDialog 
+            isVisible={showTutorDialog} 
+            text={currentSentence.tutorGuidance || ''} 
+            onDismiss={() => {
+                setShowTutorDialog(false);
+                // Mark this specific sentence guidance as seen for this session
+                setSeenGuidance(prev => new Set(prev).add(currentSentence.id));
+            }}
+        />
+
         {mode === SessionMode.EXPLORE && (
             <div className="flex-1 flex flex-col animate-in fade-in duration-500">
                <div className="flex justify-between items-center mb-6">
                  <div className="flex items-center gap-2">
                     <Layers className="w-4 h-4 text-[#8a1c1c]" />
                     <span className="text-xs font-bold text-[#8a1c1c] uppercase">Bedah Logika</span>
+                    
+                    {/* Recall Button: Only shows if guidance is available but hidden */}
+                    {currentSentence.tutorGuidance && !showTutorDialog && (
+                        <motion.button 
+                            initial={{ scale: 0 }} animate={{ scale: 1 }}
+                            onClick={() => {
+                                SFX.playPop();
+                                setShowTutorDialog(true);
+                            }}
+                            className="ml-2 w-6 h-6 bg-[#1a1512] rounded-full flex items-center justify-center text-white shadow-sm hover:scale-110 transition-transform"
+                        >
+                            <GraduationCap className="w-3 h-3" />
+                        </motion.button>
+                    )}
                  </div>
                  <AudioControl 
                     text={currentSentence.arabicText} 

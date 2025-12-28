@@ -34,6 +34,7 @@ export interface Sentence {
   translation: string;
   segments: Segment[];
   audioSrc?: string; // Path to audio file
+  tutorGuidance?: string; // NEW: Contextual guidance from the teacher popup
 }
 
 export interface VocabularyItem {

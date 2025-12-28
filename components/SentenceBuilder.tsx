@@ -52,8 +52,11 @@ export const SentenceBuilder: React.FC<SentenceBuilderProps> = ({ sentence, onSu
   const checkAnswer = () => {
     if (!sentence || !sentence.segments) return;
 
-    const currentString = builtSentence.map(s => s.id).join('-');
-    const correctString = sentence.segments.map(s => s.id).join('-');
+    // FIX LOGIC: Bandingkan TEXT-nya, bukan ID-nya.
+    // Ini memungkinkan kata kembar (misal: 'Haza' di awal dan 'Haza' di tengah)
+    // untuk ditukar-tukar posisinya asalkan teks-nya benar.
+    const currentString = builtSentence.map(s => s.text.trim()).join('|');
+    const correctString = sentence.segments.map(s => s.text.trim()).join('|');
 
     if (currentString === correctString) {
       SFX.playSuccess();
@@ -61,14 +64,17 @@ export const SentenceBuilder: React.FC<SentenceBuilderProps> = ({ sentence, onSu
       setTimeout(onSuccess, 1000);
     } else {
       SFX.playError();
-      // Intelligent Feedback Logic
-      // Check if the first word is correct
-      if (builtSentence.length > 0 && builtSentence[0].id !== sentence.segments[0].id) {
-         setFeedback("Awal kalimat belum tepat. Coba perhatikan lagi Mubtada atau Isim Isyarah-nya.");
+      
+      // Intelligent Feedback Logic (Text Based)
+      const correctSegments = sentence.segments;
+      
+      // Cek kata pertama
+      if (builtSentence.length > 0 && builtSentence[0].text !== correctSegments[0].text) {
+         setFeedback("Awal kalimat belum tepat. Coba perhatikan lagi kata pertamanya.");
       } 
-      // Check if the last word is correct (usually the Khobar/Majrur)
+      // Cek kata terakhir (biasanya Khobar/Majrur)
       else if (builtSentence.length === sentence.segments.length && 
-               builtSentence[builtSentence.length - 1].id !== sentence.segments[sentence.segments.length - 1].id) {
+               builtSentence[builtSentence.length - 1].text !== correctSegments[correctSegments.length - 1].text) {
          setFeedback("Akhiran kalimat sepertinya tertukar.");
       } 
       else {
