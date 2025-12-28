@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { HashRouter, Routes, Route, useNavigate, useParams, Navigate, Outlet, useLocation, Link } from 'react-router-dom';
-import { ChevronRight, ChevronLeft, BookOpen, X, RotateCcw, Search, Sparkles, Play, Layers, Home, RefreshCw, Quote, GraduationCap } from 'lucide-react';
+import { ChevronRight, ChevronLeft, BookOpen, X, RotateCcw, Search, Sparkles, Play, Layers, Home, RefreshCw, Quote, GraduationCap, Eye, EyeOff, Volume2, Filter } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion'; 
 import { LESSON_DATA } from './services/data';
 import { ArabicWord } from './components/ArabicWord';
@@ -13,6 +13,7 @@ import { LessonPath } from './components/LessonPath';
 import { TutorDialog } from './components/TutorDialog'; // Import TutorDialog
 import { Segment, VocabularyItem, UserProgress } from './types';
 import { SFX } from './services/sfx';
+import { playArabicAudio } from './services/audio'; // Import audio service
 
 // --- STORAGE HELPER ---
 const STORAGE_KEY = 'durus_progress_v2';
@@ -112,49 +113,144 @@ const MainLayout = () => (
 // --- SCREENS ---
 const DictionaryScreen = () => {
   const [search, setSearch] = useState('');
-  const allVocab = LESSON_DATA.flatMap(l => 
-    l.vocabulary.map(v => ({...v, lessonTitle: l.title}))
-  );
-  const filtered = allVocab.filter(v => 
-    v.latin.toLowerCase().includes(search.toLowerCase()) || 
-    v.meaning.toLowerCase().includes(search.toLowerCase()) ||
-    v.arabic.includes(search)
-  );
+  const [isMemorizeMode, setIsMemorizeMode] = useState(false);
+  const [revealedCards, setRevealedCards] = useState<Set<string>>(new Set());
+
+  // Aggregate vocab grouped by Lesson
+  const groupedVocab = LESSON_DATA.map(lesson => ({
+    lessonTitle: lesson.title,
+    lessonId: lesson.id,
+    items: lesson.vocabulary.filter(v => 
+        v.latin.toLowerCase().includes(search.toLowerCase()) || 
+        v.meaning.toLowerCase().includes(search.toLowerCase()) ||
+        v.arabic.includes(search)
+    )
+  })).filter(group => group.items.length > 0);
+
+  const totalWords = LESSON_DATA.reduce((acc, lesson) => acc + lesson.vocabulary.length, 0);
+
+  const toggleReveal = (uniqueId: string) => {
+    if (!isMemorizeMode) return;
+    SFX.playClick();
+    setRevealedCards(prev => {
+        const next = new Set(prev);
+        if (next.has(uniqueId)) next.delete(uniqueId);
+        else next.add(uniqueId);
+        return next;
+    });
+  };
+
+  const playWord = (e: React.MouseEvent, word: string) => {
+      e.stopPropagation();
+      playArabicAudio(word);
+  };
 
   return (
-    <div className="p-6 max-w-md mx-auto min-h-screen bg-[#f8f9fa]">
-      <h1 className="font-serif font-bold text-2xl mb-6">Kamus Saku</h1>
-      <div className="relative mb-6">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-        <input 
-          type="text" 
-          placeholder="Cari kata (Arab/Latin)..." 
-          className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-[#8a1c1c]/20 focus:border-[#8a1c1c]"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-      </div>
-      <div className="space-y-3 pb-20">
-        {filtered.length > 0 ? filtered.map((item, idx) => (
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: idx * 0.05 }}
-            key={idx} 
-            className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex justify-between items-center"
-            onClick={() => SFX.playPop()}
-          >
+    <div className="min-h-screen bg-[#f8f9fa] pb-24">
+      {/* Sticky Header */}
+      <div className="bg-white sticky top-0 z-20 px-6 py-4 border-b border-gray-100 shadow-sm">
+          <div className="flex justify-between items-end mb-4">
             <div>
-               <p className="font-bold font-serif text-[#1a1512]">{item.latin}</p>
-               <p className="text-sm text-gray-500 italic">{item.meaning}</p>
+                <h1 className="font-serif font-bold text-2xl text-[#1a1512]">Kamus Al-Mufradat</h1>
+                <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">
+                    {totalWords} Kosakata Tersimpan
+                </p>
             </div>
-            <div className="text-right">
-               <p className="font-arabic text-2xl font-bold">{item.arabic}</p>
-               {item.plural && <p className="text-[10px] text-[#8a1c1c]">Jamak: {item.plural}</p>}
+            <button 
+                onClick={() => { SFX.playClick(); setIsMemorizeMode(!isMemorizeMode); setRevealedCards(new Set()); }}
+                className={`flex flex-col items-center justify-center w-12 h-12 rounded-xl transition-all border ${isMemorizeMode ? 'bg-[#1a1512] border-[#1a1512] text-white' : 'bg-white border-gray-200 text-gray-400 hover:border-[#1a1512] hover:text-[#1a1512]'}`}
+            >
+                {isMemorizeMode ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                <span className="text-[8px] font-bold uppercase mt-1">Hafalan</span>
+            </button>
+          </div>
+
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input 
+            type="text" 
+            placeholder="Cari kata..." 
+            className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl shadow-inner focus:outline-none focus:ring-2 focus:ring-[#8a1c1c]/20 focus:border-[#8a1c1c] transition-all"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+      </div>
+
+      {/* Content List */}
+      <div className="px-6 py-6 space-y-8">
+        {groupedVocab.length > 0 ? groupedVocab.map((group) => (
+            <div key={group.lessonId} className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="flex items-center gap-2 mb-4 opacity-60">
+                    <BookOpen className="w-4 h-4 text-[#8a1c1c]" />
+                    <h2 className="text-xs font-bold uppercase tracking-widest text-[#1a1512]">{group.lessonTitle}</h2>
+                    <div className="h-px bg-gray-200 flex-1"></div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {group.items.map((item, idx) => {
+                        const uniqueId = `${group.lessonId}-${idx}`;
+                        const isRevealed = revealedCards.has(uniqueId) || !isMemorizeMode;
+                        
+                        return (
+                            <motion.div 
+                                layoutId={uniqueId}
+                                onClick={() => toggleReveal(uniqueId)}
+                                key={uniqueId}
+                                className={`
+                                    bg-white rounded-xl p-4 border transition-all cursor-pointer relative overflow-hidden group
+                                    ${isMemorizeMode && !isRevealed 
+                                        ? 'border-dashed border-[#8a1c1c]/30 hover:bg-[#8a1c1c]/5' 
+                                        : 'border-gray-100 shadow-sm hover:shadow-md hover:border-gray-200'}
+                                `}
+                            >
+                                {/* Front: Arabic */}
+                                <div className="flex justify-between items-start mb-2">
+                                    <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center hover:bg-[#8a1c1c] hover:text-white transition-colors"
+                                         onClick={(e) => playWord(e, item.arabic)}
+                                    >
+                                        <Volume2 className="w-4 h-4" />
+                                    </div>
+                                    <h3 className="font-arabic text-3xl font-bold text-[#1a1512] text-right">{item.arabic}</h3>
+                                </div>
+
+                                {/* Divider or Blur overlay */}
+                                <div className="h-px bg-gray-100 w-full my-3"></div>
+
+                                {/* Back: Meaning */}
+                                <div className={`transition-all duration-300 ${!isRevealed ? 'blur-md select-none opacity-50' : 'blur-0 opacity-100'}`}>
+                                    <div className="flex justify-between items-center">
+                                        <div>
+                                            <p className="font-bold text-[#1a1512] text-lg leading-none mb-1">{item.latin}</p>
+                                            <p className="text-sm text-gray-500 italic">{item.meaning}</p>
+                                        </div>
+                                        {item.plural && (
+                                            <div className="text-right">
+                                                <span className="text-[9px] text-[#8a1c1c] font-bold uppercase bg-red-50 px-2 py-1 rounded">Jamak</span>
+                                                <p className="font-arabic text-lg text-[#8a1c1c]">{item.plural}</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                                
+                                {/* Tap Hint */}
+                                {isMemorizeMode && !isRevealed && (
+                                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest bg-white/80 px-2 py-1 rounded-full backdrop-blur-sm">
+                                            Ketuk untuk melihat
+                                        </span>
+                                    </div>
+                                )}
+                            </motion.div>
+                        );
+                    })}
+                </div>
             </div>
-          </motion.div>
         )) : (
-            <div className="text-center text-gray-400 mt-10 italic">Kata tidak ditemukan.</div>
+            <div className="text-center py-20 opacity-50">
+                <Search className="w-12 h-12 mx-auto text-gray-300 mb-4" />
+                <p className="text-gray-500 font-serif italic">"Kata yang dicari tidak ditemukan."</p>
+            </div>
         )}
       </div>
     </div>
