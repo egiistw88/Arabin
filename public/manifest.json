@@ -1,0 +1,23 @@
+{
+  "short_name": "Arabin",
+  "name": "Arabin: Logika Bahasa Arab",
+  "description": "Kuasai Nahwu & Shorof dengan pendekatan logika kausalitas visual.",
+  "icons": [
+    {
+      "src": "/logo.svg",
+      "type": "image/svg+xml",
+      "sizes": "512x512"
+    },
+    {
+      "src": "/logo.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#1a1512",
+  "background_color": "#fdfbf7",
+  "orientation": "portrait",
+  "categories": ["education", "productivity"]
+}

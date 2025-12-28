@@ -1,14 +1,28 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Durusul Lughah - Kitab Digital</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    
+    <!-- BRANDING & SEO -->
+    <title>Arabin - Guru Logika Bahasa Arab</title>
+    <meta name="description" content="Belajar Bahasa Arab (Nahwu Shorof) dengan metode logika visual dan kausalitas. Interaktif, Cerdas, dan Menyenangkan.">
+    
+    <!-- PWA & MOBILE EXPERIENCE -->
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+    <meta name="theme-color" content="#1a1512" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Arabin" />
+    <link rel="apple-touch-icon" href="/logo.svg" />
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <!-- Amiri (Arabic) & Merriweather (Latin Serif for Scholarly feel) -->
     <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400;1,700&family=Merriweather:ital,wght@0,300;0,400;0,700;1,300;1,400&display=swap" rel="stylesheet">
+    
     <style>
       :root {
         --app-bg: #f8f9fa; /* Clean off-white */
@@ -46,25 +60,94 @@
       .safe-bottom {
         padding-bottom: env(safe-area-inset-bottom);
       }
+
+      /* SPLASH SCREEN STYLES (Shown before React loads) */
+      #splash-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #fdfbf7;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        transition: opacity 0.5s ease-out;
+      }
+      .splash-logo {
+        width: 80px;
+        height: 80px;
+        background-color: #1a1512;
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 20px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        animation: pulse-shadow 2s infinite;
+      }
+      .splash-text {
+        font-family: 'Merriweather', serif;
+        color: #1a1512;
+        font-weight: bold;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        opacity: 0.7;
+      }
+      @keyframes pulse-shadow {
+        0% { transform: scale(1); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        50% { transform: scale(1.05); box-shadow: 0 15px 35px rgba(138, 28, 28, 0.2); }
+        100% { transform: scale(1); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+      }
     </style>
   <script type="importmap">
 {
   "imports": {
-    "react": "https://esm.sh/react@^19.2.3",
     "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "framer-motion": "https://esm.sh/framer-motion@^12.23.26",
     "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
     "recharts": "https://esm.sh/recharts@^3.6.0",
     "react-router-dom": "https://esm.sh/react-router-dom@^7.11.0",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
     "vite": "https://esm.sh/vite@^7.3.0",
-    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2"
+    "framer-motion": "https://esm.sh/framer-motion@^12.23.26",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3"
   }
 }
 </script>
 </head>
   <body>
+    <!-- Initial Splash Screen -->
+    <div id="splash-screen">
+      <div class="splash-logo">
+        <!-- Inline SVG for immediate rendering -->
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="50" height="50">
+           <path d="M256 360c-40 0-70-20-80-50h-40c15 60 70 90 120 90 80 0 140-50 140-130 0-70-50-120-120-120-20 0-40 5-60 15 10-30 30-50 60-50 30 0 50 20 50 20l20-30s-30-30-70-30c-60 0-100 40-100 100 0 20 5 40 15 60-25 20-35 50-35 80 0 60 40 100 100 100z" fill="#fdfbf7"/>
+           <circle cx="360" cy="140" r="25" fill="#8a1c1c"/>
+        </svg>
+      </div>
+      <div class="splash-text">Memuat Logika...</div>
+    </div>
+
     <div id="root"></div>
+    
     <script type="module" src="/index.tsx"></script>
+    
+    <!-- Script to remove splash screen when React mounts -->
+    <script>
+      window.onload = function() {
+        const splash = document.getElementById('splash-screen');
+        // Wait a tiny bit for React to hydrate
+        setTimeout(() => {
+          if(splash) {
+            splash.style.opacity = '0';
+            setTimeout(() => splash.remove(), 500);
+          }
+        }, 800);
+      }
+    </script>
   </body>
 </html>
