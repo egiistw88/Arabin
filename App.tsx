@@ -155,7 +155,7 @@ const navigate = (to: string) => {
 };
 
 // --- LAYOUTS ---
-const MainLayout = ({ children, currentPath }: { children: React.ReactNode, currentPath: string }) => (
+const MainLayout = ({ children, currentPath }: React.PropsWithChildren<{ currentPath: string }>) => (
   <div className="min-h-screen bg-[#f8f9fa] text-[#1a1512] pb-20">
     {children}
     <BottomNav currentPath={currentPath} navigate={navigate} />

@@ -15,13 +15,17 @@ export const LessonPath: React.FC<LessonPathProps> = ({ progress, navigate }) =>
 
   // --- INTELLIGENT PROGRESS LOGIC ---
   
-  let activeLessonIndex = LESSON_DATA.findIndex(l => !progress.completedLessons.includes(l.id));
+  // Find the first lesson that is NOT in the completed list
+  let activeLessonIndex = LESSON_DATA.findIndex((l) => !progress.completedLessons.includes(l.id));
   
+  // If all lessons are completed, set active index to the last one
   const isCourseComplete = activeLessonIndex === -1 && progress.completedLessons.length > 0;
   
   if (isCourseComplete) {
     activeLessonIndex = LESSON_DATA.length - 1; 
   }
+  
+  // Default to 0 if something goes wrong or no progress
   if (activeLessonIndex === -1) activeLessonIndex = 0;
 
   const activeLesson = LESSON_DATA[activeLessonIndex];
@@ -34,7 +38,6 @@ export const LessonPath: React.FC<LessonPathProps> = ({ progress, navigate }) =>
 
   // Level Logic
   const level = Math.floor(stats.totalXp / 500) + 1;
-  const nextLevelXp = level * 500;
   const currentLevelXp = stats.totalXp - ((level - 1) * 500);
   const progressPercent = Math.min((currentLevelXp / 500) * 100, 100);
 
@@ -288,7 +291,7 @@ export const LessonPath: React.FC<LessonPathProps> = ({ progress, navigate }) =>
                         </h4>
                         
                         <div className="flex flex-wrap gap-1.5">
-                            {lesson.concepts.slice(0, 3).map((concept, i) => (
+                            {lesson.concepts.slice(0, 3).map((concept: string, i: number) => (
                             <span key={i} className={`px-2 py-1 text-[10px] rounded-md font-medium border ${isCompleted ? 'bg-white/50 text-green-800 border-green-100' : 'bg-gray-50 text-gray-600 border-gray-100'}`}>
                                 {concept}
                             </span>
