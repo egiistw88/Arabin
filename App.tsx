@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { HashRouter, Routes, Route, useNavigate, useParams, Navigate, Outlet, useLocation, Link } from 'react-router-dom';
-import { ChevronRight, ChevronLeft, BookOpen, X, RotateCcw, Search, Sparkles, Play, Layers, Home, RefreshCw, Quote, GraduationCap, Eye, EyeOff, Volume2, Filter } from 'lucide-react';
+import { ChevronRight, ChevronLeft, BookOpen, X, RotateCcw, Search, Sparkles, Play, Layers, Home, RefreshCw, Quote, GraduationCap, Eye, EyeOff, Volume2, Filter, Edit2, Settings, Trophy, Calendar, Flame, Star, LogOut, Github, Info, Medal, Music } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion'; 
 import { LESSON_DATA } from './services/data';
 import { ArabicWord } from './components/ArabicWord';
@@ -29,28 +29,37 @@ const getProgress = (): UserProgress => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (!saved) {
       return { 
+        userName: 'Penuntut Ilmu',
         lastLessonId: LESSON_DATA[0].id, 
         lastPageId: '0', 
         completedLessons: [],
         currentStreak: 0,
-        lastStudyDate: ''
+        lastStudyDate: '',
+        totalXp: 0,
+        seenGuidanceIds: []
       };
     }
     const parsed = JSON.parse(saved);
     return {
+      userName: parsed.userName || 'Penuntut Ilmu',
       lastLessonId: parsed.lastLessonId || LESSON_DATA[0].id,
       lastPageId: parsed.lastPageId || '0',
       completedLessons: Array.isArray(parsed.completedLessons) ? parsed.completedLessons : [],
       currentStreak: typeof parsed.currentStreak === 'number' ? parsed.currentStreak : 0,
-      lastStudyDate: parsed.lastStudyDate || ''
+      lastStudyDate: parsed.lastStudyDate || '',
+      totalXp: parsed.totalXp || (Array.isArray(parsed.completedLessons) ? parsed.completedLessons.length * 150 : 0),
+      seenGuidanceIds: Array.isArray(parsed.seenGuidanceIds) ? parsed.seenGuidanceIds : []
     };
   } catch (e) {
     return { 
+      userName: 'Penuntut Ilmu',
       lastLessonId: LESSON_DATA[0].id, 
       lastPageId: '0', 
       completedLessons: [],
       currentStreak: 0,
-      lastStudyDate: ''
+      lastStudyDate: '',
+      totalXp: 0,
+      seenGuidanceIds: []
     };
   }
 };
@@ -95,12 +104,41 @@ const markLessonComplete = (lessonId: string) => {
       ...current,
       completedLessons: [...current.completedLessons, lessonId],
       currentStreak: newStreak,
-      lastStudyDate: getTodayString()
+      lastStudyDate: getTodayString(),
+      totalXp: (current.totalXp || 0) + 150 // XP Reward
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
     window.dispatchEvent(new Event('durus-progress-updated'));
   }
 };
+
+const updateUserName = (name: string) => {
+    const current = getProgress();
+    const updated: UserProgress = { ...current, userName: name };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    window.dispatchEvent(new Event('durus-progress-updated'));
+};
+
+// NEW: Helper to mark tutor guidance as seen PERSISTENTLY
+const markGuidanceSeen = (guidanceId: string) => {
+    const current = getProgress();
+    if (!current.seenGuidanceIds?.includes(guidanceId)) {
+        const updated: UserProgress = {
+            ...current,
+            seenGuidanceIds: [...(current.seenGuidanceIds || []), guidanceId]
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+        window.dispatchEvent(new Event('durus-progress-updated'));
+    }
+};
+
+const resetGuidanceHistory = () => {
+    const current = getProgress();
+    const updated: UserProgress = { ...current, seenGuidanceIds: [] };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    window.dispatchEvent(new Event('durus-progress-updated'));
+};
+
 
 // --- LAYOUTS ---
 const MainLayout = () => (
@@ -115,6 +153,7 @@ const DictionaryScreen = () => {
   const [search, setSearch] = useState('');
   const [isMemorizeMode, setIsMemorizeMode] = useState(false);
   const [revealedCards, setRevealedCards] = useState<Set<string>>(new Set());
+  const [playingWord, setPlayingWord] = useState<string | null>(null);
 
   // Aggregate vocab grouped by Lesson
   const groupedVocab = LESSON_DATA.map(lesson => ({
@@ -142,7 +181,8 @@ const DictionaryScreen = () => {
 
   const playWord = (e: React.MouseEvent, word: string) => {
       e.stopPropagation();
-      playArabicAudio(word);
+      setPlayingWord(word);
+      playArabicAudio(word, undefined, () => setPlayingWord(null));
   };
 
   return (
@@ -191,6 +231,7 @@ const DictionaryScreen = () => {
                     {group.items.map((item, idx) => {
                         const uniqueId = `${group.lessonId}-${idx}`;
                         const isRevealed = revealedCards.has(uniqueId) || !isMemorizeMode;
+                        const isPlaying = playingWord === item.arabic;
                         
                         return (
                             <motion.div 
@@ -202,15 +243,23 @@ const DictionaryScreen = () => {
                                     ${isMemorizeMode && !isRevealed 
                                         ? 'border-dashed border-[#8a1c1c]/30 hover:bg-[#8a1c1c]/5' 
                                         : 'border-gray-100 shadow-sm hover:shadow-md hover:border-gray-200'}
+                                    ${isPlaying ? 'ring-2 ring-[#8a1c1c] ring-offset-2' : ''}
                                 `}
                             >
                                 {/* Front: Arabic */}
                                 <div className="flex justify-between items-start mb-2">
-                                    <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center hover:bg-[#8a1c1c] hover:text-white transition-colors"
+                                    <button 
+                                         className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors z-10 ${isPlaying ? 'bg-[#8a1c1c] text-white' : 'bg-gray-50 text-gray-400 hover:bg-[#8a1c1c] hover:text-white'}`}
                                          onClick={(e) => playWord(e, item.arabic)}
                                     >
-                                        <Volume2 className="w-4 h-4" />
-                                    </div>
+                                        {isPlaying ? (
+                                            <motion.span animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity }}>
+                                                <Volume2 className="w-4 h-4" />
+                                            </motion.span>
+                                        ) : (
+                                            <Play className="w-3 h-3 fill-current" />
+                                        )}
+                                    </button>
                                     <h3 className="font-arabic text-3xl font-bold text-[#1a1512] text-right">{item.arabic}</h3>
                                 </div>
 
@@ -259,39 +308,219 @@ const DictionaryScreen = () => {
 
 const ProfileScreen = () => {
   const progress = getProgress();
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [tempName, setTempName] = useState(progress.userName || 'Penuntut Ilmu');
+
+  // Gamification Logic
+  const totalXp = progress.totalXp || 0;
+  const level = Math.floor(totalXp / 500) + 1;
+  const nextLevelXp = level * 500;
+  const currentLevelXp = totalXp - ((level - 1) * 500);
+  const progressPercent = Math.min((currentLevelXp / 500) * 100, 100);
+
+  // Dynamic Title based on Level
+  const getTitle = (lvl: number) => {
+      if (lvl >= 10) return "Al-Alim (Ahli)";
+      if (lvl >= 5) return "Thalib (Penuntut)";
+      return "Mubtadi (Pemula)";
+  };
+
+  // Badges Logic
+  const badges = [
+      { id: 'streak_3', icon: Flame, label: 'Istiqomah', desc: 'Streak 3 Hari', unlocked: progress.currentStreak >= 3 },
+      { id: 'streak_7', icon: Flame, label: 'Mujahid', desc: 'Streak 7 Hari', unlocked: progress.currentStreak >= 7 },
+      { id: 'first_step', icon: Star, label: 'Fatih', desc: 'Selesaikan 1 Bab', unlocked: progress.completedLessons.length >= 1 },
+      { id: 'scholar', icon: GraduationCap, label: 'Faqih', desc: 'Selesaikan 5 Bab', unlocked: progress.completedLessons.length >= 5 },
+  ];
+
+  const handleNameSave = () => {
+      SFX.playSuccess();
+      updateUserName(tempName);
+      setIsEditingName(false);
+  };
+
   return (
-    <div className="p-6 max-w-md mx-auto flex flex-col items-center justify-center min-h-[80vh]">
-       <div className="w-20 h-20 bg-gray-200 rounded-full mb-4 flex items-center justify-center relative shadow-inner">
-         <span className="font-serif font-bold text-2xl text-gray-400">A</span>
-         <div className="absolute -bottom-2 -right-2 bg-[#8a1c1c] text-white text-xs px-2 py-1 rounded-full border-2 border-white font-bold">
-            Lvl {progress.completedLessons.length + 1}
-         </div>
-       </div>
-       <h2 className="font-bold text-xl">Ahlan wa Sahlan!</h2>
+    <div className="min-h-screen bg-[#f8f9fa] pb-32">
        
-       <div className="mt-8 grid grid-cols-2 gap-4 w-full">
-         <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 text-center">
-            <span className="block text-3xl font-bold text-[#8a1c1c] mb-1">{progress.currentStreak}</span>
-            <span className="text-xs text-gray-400 uppercase tracking-widest">Hari Streak</span>
-         </div>
-         <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 text-center">
-            <span className="block text-3xl font-bold text-[#1a1512] mb-1">{progress.completedLessons.length}</span>
-            <span className="text-xs text-gray-400 uppercase tracking-widest">Bab Selesai</span>
-         </div>
+       {/* 1. HEADER PROFILE CARD */}
+       <div className="bg-[#1a1512] text-[#fdfbf7] pt-10 pb-16 px-6 rounded-b-[40px] shadow-xl relative overflow-hidden">
+            {/* Background Pattern */}
+            <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/arabesque.png')]"></div>
+            
+            <div className="relative z-10 max-w-md mx-auto text-center">
+                <div className="relative inline-block mb-4">
+                     <motion.div 
+                        initial={{ scale: 0 }} animate={{ scale: 1 }}
+                        className="w-24 h-24 bg-[#fdfbf7] rounded-full flex items-center justify-center border-4 border-[#8a1c1c] shadow-2xl mx-auto"
+                     >
+                        <span className="font-serif font-bold text-4xl text-[#1a1512]">{tempName.charAt(0).toUpperCase()}</span>
+                     </motion.div>
+                     <div className="absolute -bottom-2 -right-2 bg-[#8a1c1c] text-white text-[10px] font-bold px-3 py-1 rounded-full border-2 border-[#1a1512]">
+                        Lvl {level}
+                     </div>
+                </div>
+
+                {isEditingName ? (
+                    <div className="flex items-center gap-2 justify-center mb-1">
+                        <input 
+                            autoFocus
+                            type="text" 
+                            value={tempName}
+                            onChange={(e) => setTempName(e.target.value)}
+                            className="bg-white/10 border border-white/20 rounded-lg px-3 py-1 text-center text-white font-serif font-bold focus:outline-none focus:border-[#8a1c1c]"
+                        />
+                        <button onClick={handleNameSave} className="p-1.5 bg-[#8a1c1c] rounded-md hover:bg-red-700"><RefreshCw className="w-4 h-4" /></button>
+                    </div>
+                ) : (
+                    <h2 
+                        onClick={() => { setIsEditingName(true); SFX.playClick(); }}
+                        className="text-2xl font-serif font-bold flex items-center justify-center gap-2 cursor-pointer hover:text-gray-300 transition-colors"
+                    >
+                        {progress.userName || 'Penuntut Ilmu'} 
+                        <Edit2 className="w-4 h-4 opacity-50" />
+                    </h2>
+                )}
+                
+                <p className="text-[#8a1c1c] font-sans text-xs font-bold uppercase tracking-[0.2em] mb-6">{getTitle(level)}</p>
+
+                {/* XP Progress Bar */}
+                <div className="bg-white/10 h-3 rounded-full overflow-hidden w-full max-w-[200px] mx-auto mb-2 relative">
+                    <motion.div 
+                        initial={{ width: 0 }} animate={{ width: `${progressPercent}%` }}
+                        transition={{ duration: 1, ease: "easeOut" }}
+                        className="h-full bg-gradient-to-r from-[#8a1c1c] to-red-500"
+                    />
+                </div>
+                <p className="text-[10px] text-gray-400">{currentLevelXp} / 500 XP menuju level {level + 1}</p>
+            </div>
        </div>
 
-       <button 
-         onClick={() => {
-             SFX.playClick();
-             if(confirm("Yakin ingin menghapus semua progress?")) {
-                 localStorage.removeItem(STORAGE_KEY);
-                 window.location.reload();
-             }
-         }}
-         className="mt-12 px-6 py-2 rounded-full border border-red-100 text-red-400 text-xs font-bold uppercase tracking-widest hover:bg-red-50 hover:text-red-600 transition-colors"
-       >
-         Reset Progress
-       </button>
+       <div className="max-w-md mx-auto px-6 -mt-10 relative z-20 space-y-6">
+         
+         {/* 2. STATS GRID */}
+         <div className="grid grid-cols-2 gap-4">
+             <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-2">
+                 <div className="p-2 bg-orange-50 rounded-full text-orange-600">
+                    <Flame className="w-6 h-6" />
+                 </div>
+                 <div className="text-center">
+                    <span className="block text-2xl font-bold text-[#1a1512]">{progress.currentStreak}</span>
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Hari Streak</span>
+                 </div>
+             </div>
+             
+             <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-2">
+                 <div className="p-2 bg-blue-50 rounded-full text-blue-600">
+                    <Trophy className="w-6 h-6" />
+                 </div>
+                 <div className="text-center">
+                    <span className="block text-2xl font-bold text-[#1a1512]">{progress.completedLessons.length}</span>
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Bab Selesai</span>
+                 </div>
+             </div>
+
+             <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-2 col-span-2">
+                 <div className="flex justify-between w-full px-4 items-center">
+                     <div className="flex items-center gap-3">
+                         <div className="p-2 bg-green-50 rounded-full text-green-600">
+                            <BookOpen className="w-5 h-5" />
+                         </div>
+                         <div className="text-left">
+                            <span className="block text-lg font-bold text-[#1a1512]">{progress.completedLessons.length * 24}</span>
+                            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Perkiraan Kata Dikuasai</span>
+                         </div>
+                     </div>
+                     <div className="h-10 w-px bg-gray-100"></div>
+                     <div className="text-right">
+                         <span className="block text-lg font-bold text-[#8a1c1c]">{totalXp}</span>
+                         <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Total XP</span>
+                     </div>
+                 </div>
+             </div>
+         </div>
+
+         {/* 3. BADGES SECTION */}
+         <div>
+             <h3 className="font-serif font-bold text-[#1a1512] mb-3 flex items-center gap-2">
+                <Medal className="w-4 h-4 text-[#8a1c1c]" />
+                Pencapaian (Badges)
+             </h3>
+             <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 overflow-x-auto no-scrollbar flex gap-4">
+                {badges.map((badge) => (
+                    <div key={badge.id} className={`flex-shrink-0 flex flex-col items-center w-24 text-center ${!badge.unlocked ? 'opacity-40 grayscale' : ''}`}>
+                        <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-2 border-2 ${badge.unlocked ? 'bg-yellow-50 border-yellow-400 text-yellow-600' : 'bg-gray-100 border-gray-200 text-gray-400'}`}>
+                            <badge.icon className="w-6 h-6" />
+                        </div>
+                        <span className="text-xs font-bold text-[#1a1512]">{badge.label}</span>
+                        <span className="text-[9px] text-gray-400 mt-0.5">{badge.desc}</span>
+                    </div>
+                ))}
+             </div>
+         </div>
+
+         {/* 4. SETTINGS & ACTIONS */}
+         <div>
+            <h3 className="font-serif font-bold text-[#1a1512] mb-3 flex items-center gap-2">
+                <Settings className="w-4 h-4 text-[#8a1c1c]" />
+                Pengaturan
+             </h3>
+             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                 <button 
+                    onClick={() => { setIsEditingName(true); window.scrollTo({top: 0, behavior: 'smooth'}); }}
+                    className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors border-b border-gray-100"
+                 >
+                    <div className="flex items-center gap-3">
+                        <Edit2 className="w-4 h-4 text-gray-400" />
+                        <span className="text-sm font-bold text-[#1a1512]">Ubah Nama Panggilan</span>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-gray-300" />
+                 </button>
+                 
+                 <button 
+                    onClick={() => { SFX.playPop(); resetGuidanceHistory(); alert("Riwayat bimbingan guru telah direset."); }}
+                    className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors border-b border-gray-100"
+                 >
+                    <div className="flex items-center gap-3">
+                        <RotateCcw className="w-4 h-4 text-gray-400" />
+                        <span className="text-sm font-bold text-[#1a1512]">Tampilkan Lagi Tips Guru</span>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-gray-300" />
+                 </button>
+
+                 <a 
+                    href="https://github.com/abudzan" target="_blank" rel="noreferrer"
+                    className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors border-b border-gray-100"
+                 >
+                    <div className="flex items-center gap-3">
+                        <Github className="w-4 h-4 text-gray-400" />
+                        <span className="text-sm font-bold text-[#1a1512]">Tentang Pengembang</span>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-gray-300" />
+                 </a>
+
+                 <button 
+                    onClick={() => {
+                        SFX.playClick();
+                        if(confirm("PERINGATAN: Apakah Anda yakin ingin menghapus SEMUA data dan kemajuan belajar? Tindakan ini tidak dapat dibatalkan.")) {
+                            localStorage.removeItem(STORAGE_KEY);
+                            window.location.reload();
+                        }
+                    }}
+                    className="w-full px-5 py-4 flex items-center justify-between hover:bg-red-50 transition-colors group"
+                 >
+                    <div className="flex items-center gap-3">
+                        <LogOut className="w-4 h-4 text-red-400 group-hover:text-red-600" />
+                        <span className="text-sm font-bold text-red-400 group-hover:text-red-600">Reset Semua Data</span>
+                    </div>
+                 </button>
+             </div>
+         </div>
+
+         <div className="text-center pb-8 pt-4">
+             <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Arabin v1.0.3</p>
+         </div>
+
+       </div>
     </div>
   );
 }
@@ -309,13 +538,15 @@ const LessonSession = () => {
   const pageIndex = isNaN(parseInt(pageId || '0')) ? 0 : parseInt(pageId || '0');
   
   const lesson = LESSON_DATA.find(l => l.id === lessonId);
+  const progress = getProgress(); // Get fresh progress
   
   // State
   const [mode, setMode] = useState<SessionMode>(SessionMode.EXPLORE);
   const [selectedSegment, setSelectedSegment] = useState<Segment | null>(null);
   const [quizSentence, setQuizSentence] = useState<any>(null);
-  const [showTutorDialog, setShowTutorDialog] = useState(false); // Tutor Dialog State
-  const [seenGuidance, setSeenGuidance] = useState<Set<string>>(new Set()); // Track which guidance has been shown in this session
+  const [showTutorDialog, setShowTutorDialog] = useState(false); 
+  
+  // No local state for seen guidance anymore. We use the global progress.
 
   // Initialize Quiz Sentence once per lesson load
   useEffect(() => {
@@ -329,7 +560,7 @@ const LessonSession = () => {
   useEffect(() => {
     setMode(SessionMode.EXPLORE);
     setSelectedSegment(null);
-    setShowTutorDialog(false); // Reset first
+    setShowTutorDialog(false); 
     window.scrollTo(0,0);
   }, [pageIndex, lessonId]);
 
@@ -342,19 +573,20 @@ const LessonSession = () => {
 
   // TRIGGER TUTOR GUIDANCE
   useEffect(() => {
-    // Only trigger in Explore mode, if guidance exists, and IF NOT SEEN YET
     const currentSent = lesson?.sentences[pageIndex];
     if (mode === SessionMode.EXPLORE && currentSent?.tutorGuidance) {
-        if (!seenGuidance.has(currentSent.id)) {
-            // Small delay to let the page settle
+        // Check global history
+        const hasSeen = progress.seenGuidanceIds?.includes(currentSent.id);
+        
+        if (!hasSeen) {
             const timer = setTimeout(() => {
-                SFX.playPop(); // Alert sound
+                SFX.playPop();
                 setShowTutorDialog(true);
             }, 600);
             return () => clearTimeout(timer);
         }
     }
-  }, [pageIndex, mode, lesson, seenGuidance]);
+  }, [pageIndex, mode, lesson]);
 
   // --- SAFETY CHECKS ---
   if (!lesson) return <Navigate to="/contents" />;
@@ -439,8 +671,8 @@ const LessonSession = () => {
             text={currentSentence.tutorGuidance || ''} 
             onDismiss={() => {
                 setShowTutorDialog(false);
-                // Mark this specific sentence guidance as seen for this session
-                setSeenGuidance(prev => new Set(prev).add(currentSentence.id));
+                // Mark as persistently seen
+                markGuidanceSeen(currentSentence.id);
             }}
         />
 

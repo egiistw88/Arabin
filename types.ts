@@ -54,9 +54,12 @@ export interface Lesson {
 }
 
 export interface UserProgress {
+  userName?: string; 
   lastLessonId: string;
   lastPageId: string;
-  completedLessons: string[]; // Array of Lesson IDs that are 100% done
+  completedLessons: string[]; 
   currentStreak: number;
-  lastStudyDate: string; // Format: YYYY-MM-DD
+  lastStudyDate: string; 
+  totalXp?: number; 
+  seenGuidanceIds?: string[]; // NEW: Persistent memory for tutor guidance
 }
