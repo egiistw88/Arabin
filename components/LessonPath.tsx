@@ -99,17 +99,17 @@ export const LessonPath: React.FC<LessonPathProps> = ({ progress, navigate }) =>
       {/* STUDENT CARD POP-UP */}
       <AnimatePresence>
         {showProfileCard && (
-          <>
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
             <motion.div
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-[#1a1512]/60 z-[60] backdrop-blur-sm"
+                className="absolute inset-0 bg-[#1a1512]/60 backdrop-blur-sm"
                 onClick={() => setShowProfileCard(false)}
             />
             <motion.div
                 initial={{ opacity: 0, scale: 0.9, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[85%] max-w-sm bg-[#fdfbf7] rounded-2xl shadow-2xl z-[70] overflow-hidden border-4 border-[#1a1512]"
+                className="w-full max-w-sm bg-[#fdfbf7] rounded-2xl shadow-2xl z-[70] overflow-hidden border-4 border-[#1a1512] relative"
             >
                 {/* Decoration */}
                 <div className="absolute top-0 left-0 w-full h-24 bg-[#1a1512] z-0"></div>
@@ -164,7 +164,7 @@ export const LessonPath: React.FC<LessonPathProps> = ({ progress, navigate }) =>
                     </button>
                 </div>
             </motion.div>
-          </>
+          </div>
         )}
       </AnimatePresence>
 

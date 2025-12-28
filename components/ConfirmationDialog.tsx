@@ -27,13 +27,13 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
   return (
     <AnimatePresence>
       {isOpen && (
-        <>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-[#1a1512]/60 z-[100] backdrop-blur-sm"
+            className="absolute inset-0 bg-[#1a1512]/60 backdrop-blur-sm"
             onClick={onCancel}
           />
 
@@ -42,7 +42,7 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
             initial={{ scale: 0.9, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.9, opacity: 0, y: 20 }}
-            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-sm bg-white rounded-2xl shadow-2xl z-[101] overflow-hidden border border-gray-100 p-6"
+            className="bg-white rounded-2xl shadow-2xl z-[101] overflow-hidden border border-gray-100 p-6 w-full max-w-sm relative"
           >
              <div className="flex flex-col items-center text-center">
                 <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${isDanger ? 'bg-red-50 text-red-600' : 'bg-gray-100 text-gray-600'}`}>
@@ -72,7 +72,7 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
                 </div>
              </div>
           </motion.div>
-        </>
+        </div>
       )}
     </AnimatePresence>
   );

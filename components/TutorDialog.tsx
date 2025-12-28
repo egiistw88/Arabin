@@ -13,13 +13,13 @@ export const TutorDialog: React.FC<TutorDialogProps> = ({ isVisible, text, onDis
   return (
     <AnimatePresence>
       {isVisible && (
-        <>
+        <div className="fixed inset-0 z-[60] flex items-end justify-center pointer-events-none">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-[#1a1512]/60 z-[60] backdrop-blur-[2px]"
+            className="absolute inset-0 bg-[#1a1512]/60 backdrop-blur-[2px] pointer-events-auto"
             onClick={onDismiss}
           />
 
@@ -29,7 +29,7 @@ export const TutorDialog: React.FC<TutorDialogProps> = ({ isVisible, text, onDis
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={{ y: 50, opacity: 0, scale: 0.95 }}
             transition={{ type: "spring", damping: 20, stiffness: 300 }}
-            className="fixed bottom-6 left-4 right-4 max-w-lg mx-auto bg-white rounded-2xl shadow-2xl z-[70] overflow-hidden border border-gray-100"
+            className="w-full max-w-lg m-4 mb-6 bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-100 pointer-events-auto relative z-10"
           >
             {/* Header / Accent Bar */}
             <div className="bg-[#1a1512] px-6 py-4 flex items-center gap-3">
@@ -65,7 +65,7 @@ export const TutorDialog: React.FC<TutorDialogProps> = ({ isVisible, text, onDis
                 </button>
             </div>
           </motion.div>
-        </>
+        </div>
       )}
     </AnimatePresence>
   );
