@@ -39,10 +39,10 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({ apiKey, onSaveKey, navig
     if (isValid) {
       SFX.playSuccess();
       onSaveKey(inputKey);
-      // Add welcome message
+      // Add welcome message - WARM PERSONA
       setMessages([{
         role: 'model',
-        text: "**Ahlan wa Sahlan!** Saya Ustadz Logika. Bagian mana yang membuatmu bingung? Ceritakan padaku, kita akan bedah logikanya bersama-sama.",
+        text: "Assalamu'alaikum warahmatullah. Mari duduk sejenak. Bagian mana dari pelajaran tadi yang masih mengganjal di hati? Jangan sungkan bertanya, Ustadz di sini untuk menemani belajarmu.",
         timestamp: Date.now()
       }]);
     } else {
