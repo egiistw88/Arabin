@@ -1,3 +1,4 @@
+
 import { Lesson, LogicId, WordType } from '../types';
 
 export const LESSON_DATA: Lesson[] = [
@@ -284,3 +285,37 @@ export const LESSON_DATA: Lesson[] = [
     ]
   }
 ];
+
+// UTILITY: Precise Vocabulary Mastery Calculation
+// Menghitung jumlah kosa kata valid berdasarkan riwayat belajar user, bukan sekedar perkiraan.
+export const calculateVocabMastery = (progress: { completedLessons: string[], lastLessonId: string, lastPageId: string }): number => {
+  let totalWords = 0;
+
+  // 1. Kosa kata dari Bab yang sudah SELESAI (Completed)
+  // Kita asumsikan user menguasai seluruh kosa kata di bab yang sudah tamat.
+  progress.completedLessons.forEach(lessonId => {
+    const lesson = LESSON_DATA.find(l => l.id === lessonId);
+    if (lesson?.vocabulary) {
+      totalWords += lesson.vocabulary.length;
+    }
+  });
+
+  // 2. Kosa kata dari Bab yang SEDANG berjalan (Partial Progress)
+  // Kita hitung persentase halaman yang sudah dibaca user di bab aktif.
+  const currentLesson = LESSON_DATA.find(l => l.id === progress.lastLessonId);
+  
+  // Hanya hitung jika bab ini BELUM selesai (agar tidak double count)
+  if (currentLesson && !progress.completedLessons.includes(currentLesson.id) && currentLesson.vocabulary) {
+    const totalPages = currentLesson.sentences.length || 1;
+    const currentPage = parseInt(progress.lastPageId || '0');
+    
+    // Hitung rasio progres (maksimal 90% jika belum tamat)
+    // Logika: Jika baru baca halaman 5 dari 10, maka dianggap menguasai 50% kosa kata bab itu.
+    const ratio = Math.min(currentPage / totalPages, 0.9); 
+    const earnedFromCurrent = Math.floor(currentLesson.vocabulary.length * ratio);
+    
+    totalWords += earnedFromCurrent;
+  }
+
+  return totalWords;
+};

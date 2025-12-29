@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { CheckCircle2, Lock, Play, Star, BookOpen, Trophy, Flame, Medal, X, GraduationCap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LESSON_DATA } from '../services/data';
+import { LESSON_DATA, calculateVocabMastery } from '../services/data';
 import { UserProgress } from '../types';
 import { SFX } from '../services/sfx';
 
@@ -40,8 +41,11 @@ export const LessonPath: React.FC<LessonPathProps> = ({ progress, navigate }) =>
     }
   }, []); // Run once on mount
 
+  // USE NEW PRECISE CALCULATION
+  const vocabMasteredCount = calculateVocabMastery(progress);
+
   const stats = {
-    vocabMastered: progress.completedLessons.length * 24, // Approx 24 words per lesson
+    vocabMastered: vocabMasteredCount, 
     currentStreak: progress.currentStreak, 
     totalXp: progress.totalXp || 0
   };

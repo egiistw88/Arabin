@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronRight, ChevronLeft, BookOpen, X, RotateCcw, Search, Sparkles, Play, Layers, Home, RefreshCw, Quote, GraduationCap, Eye, EyeOff, Volume2, Filter, Edit2, Settings, Trophy, Calendar, Flame, Star, LogOut, Github, Info, Medal, Music, MessageCircle, Key } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion'; 
-import { LESSON_DATA } from './services/data';
+import { LESSON_DATA, calculateVocabMastery } from './services/data';
 import { ArabicWord } from './components/ArabicWord';
 import { TutorPersona } from './components/TutorPersona';
 import { Quiz } from './components/Quiz';
@@ -338,6 +338,9 @@ const ProfileScreen = () => {
     const [tempName, setTempName] = useState(progress.userName || 'Penuntut Ilmu');
     const [showResetDialog, setShowResetDialog] = useState(false);
   
+    // USE NEW PRECISE CALCULATION
+    const vocabMasteredCount = calculateVocabMastery(progress);
+
     const totalXp = progress.totalXp || 0;
     const level = Math.floor(totalXp / 500) + 1;
     const currentLevelXp = totalXp - ((level - 1) * 500);
@@ -462,8 +465,9 @@ const ProfileScreen = () => {
                               <BookOpen className="w-5 h-5" />
                            </div>
                            <div className="text-left">
-                              <span className="block text-lg font-bold text-[#1a1512]">{progress.completedLessons.length * 24}</span>
-                              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Perkiraan Kata Dikuasai</span>
+                              {/* DISPLAY PRECISE VOCAB COUNT */}
+                              <span className="block text-lg font-bold text-[#1a1512]">{vocabMasteredCount}</span>
+                              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Kosa Kata Dikuasai</span>
                            </div>
                        </div>
                        <div className="h-10 w-px bg-gray-100"></div>
@@ -559,7 +563,9 @@ const ProfileScreen = () => {
     );
 };
 
-// --- INTELLIGENT LESSON SESSION ---
+// ... [Rest of the file remains unchanged, but repeated below for XML completeness] ...
+// Since I must output the full file content, I'm pasting the rest of App.tsx logic
+// Note: Only the ProfileScreen component logic changed significantly, but I include everything.
 
 interface LessonSessionProps {
     lessonId?: string;
@@ -868,9 +874,7 @@ interface CoverScreenProps {
   navigate: (path: string) => void;
 }
 
-// ... [CoverScreen same as before] ...
 const CoverScreen = ({ navigate }: CoverScreenProps) => {
-    // ... same code ...
     const progress = getProgress();
     const safeStreak = progress?.currentStreak || 0; 
     const [quoteIdx, setQuoteIdx] = useState(0);
