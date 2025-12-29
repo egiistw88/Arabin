@@ -77,5 +77,12 @@ export interface UserProgress {
   currentStreak: number;
   lastStudyDate: string; 
   totalXp?: number; 
-  seenGuidanceIds?: string[]; // NEW: Persistent memory for tutor guidance
+  seenGuidanceIds?: string[]; 
+  geminiApiKey?: string; // NEW: Store User's API Key
+}
+
+export interface ChatMessage {
+  role: 'user' | 'model';
+  text: string;
+  timestamp: number;
 }

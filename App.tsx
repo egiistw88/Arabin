@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { ChevronRight, ChevronLeft, BookOpen, X, RotateCcw, Search, Sparkles, Play, Layers, Home, RefreshCw, Quote, GraduationCap, Eye, EyeOff, Volume2, Filter, Edit2, Settings, Trophy, Calendar, Flame, Star, LogOut, Github, Info, Medal, Music } from 'lucide-react';
+import { ChevronRight, ChevronLeft, BookOpen, X, RotateCcw, Search, Sparkles, Play, Layers, Home, RefreshCw, Quote, GraduationCap, Eye, EyeOff, Volume2, Filter, Edit2, Settings, Trophy, Calendar, Flame, Star, LogOut, Github, Info, Medal, Music, MessageCircle, Key } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion'; 
 import { LESSON_DATA } from './services/data';
 import { ArabicWord } from './components/ArabicWord';
@@ -12,6 +13,7 @@ import { LessonPath } from './components/LessonPath';
 import { TutorDialog } from './components/TutorDialog'; 
 import { ConfirmationDialog } from './components/ConfirmationDialog';
 import { LessonSummary } from './components/LessonSummary';
+import { GeminiChat } from './components/GeminiChat'; // NEW
 import { Segment, VocabularyItem, UserProgress, SessionMode, Lesson } from './types';
 import { SFX } from './services/sfx';
 import { playArabicAudio } from './services/audio';
@@ -37,7 +39,8 @@ const getProgress = (): UserProgress => {
         currentStreak: 0,
         lastStudyDate: '',
         totalXp: 0,
-        seenGuidanceIds: []
+        seenGuidanceIds: [],
+        geminiApiKey: ''
       };
     }
     const parsed = JSON.parse(saved);
@@ -49,7 +52,8 @@ const getProgress = (): UserProgress => {
       currentStreak: typeof parsed.currentStreak === 'number' ? parsed.currentStreak : 0,
       lastStudyDate: parsed.lastStudyDate || '',
       totalXp: parsed.totalXp || (Array.isArray(parsed.completedLessons) ? parsed.completedLessons.length * 150 : 0),
-      seenGuidanceIds: Array.isArray(parsed.seenGuidanceIds) ? parsed.seenGuidanceIds : []
+      seenGuidanceIds: Array.isArray(parsed.seenGuidanceIds) ? parsed.seenGuidanceIds : [],
+      geminiApiKey: parsed.geminiApiKey || ''
     };
   } catch (e) {
     return { 
@@ -60,7 +64,8 @@ const getProgress = (): UserProgress => {
       currentStreak: 0,
       lastStudyDate: '',
       totalXp: 0,
-      seenGuidanceIds: []
+      seenGuidanceIds: [],
+      geminiApiKey: ''
     };
   }
 };
@@ -116,6 +121,14 @@ const markLessonComplete = (lessonId: string) => {
 const updateUserName = (name: string) => {
     const current = getProgress();
     const updated: UserProgress = { ...current, userName: name };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    window.dispatchEvent(new Event('durus-progress-updated'));
+};
+
+// NEW: Save API Key
+const updateApiKey = (key: string) => {
+    const current = getProgress();
+    const updated: UserProgress = { ...current, geminiApiKey: key };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
     window.dispatchEvent(new Event('durus-progress-updated'));
 };
@@ -421,6 +434,7 @@ const ProfileScreen = () => {
          <div className="max-w-md mx-auto px-6 -mt-10 relative z-20 space-y-6 pb-24">
            
            <div className="grid grid-cols-2 gap-4">
+               {/* Stats Cards - Same as before */}
                <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-2">
                    <div className="p-2 bg-orange-50 rounded-full text-orange-600">
                       <Flame className="w-6 h-6" />
@@ -497,6 +511,20 @@ const ProfileScreen = () => {
                    </button>
                    
                    <button 
+                      onClick={() => { SFX.playClick(); navigate('/ask-teacher'); }}
+                      className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors border-b border-gray-100"
+                   >
+                      <div className="flex items-center gap-3">
+                          <Key className="w-4 h-4 text-amber-500" />
+                          <div className="text-left">
+                            <span className="text-sm font-bold text-[#1a1512] block">Atur API Key Guru AI</span>
+                            <span className="text-[10px] text-gray-400">{progress.geminiApiKey ? 'Terhubung (Gemini)' : 'Belum diatur'}</span>
+                          </div>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-gray-300" />
+                   </button>
+
+                   <button 
                       onClick={() => { SFX.playPop(); resetGuidanceHistory(); alert("Riwayat bimbingan guru telah direset."); }}
                       className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors border-b border-gray-100"
                    >
@@ -523,7 +551,7 @@ const ProfileScreen = () => {
            </div>
   
            <div className="text-center pb-8 pt-4">
-               <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Arabin v1.0.4</p>
+               <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Arabin v1.1.0 (AI Connected)</p>
            </div>
   
          </div>
@@ -649,7 +677,6 @@ const LessonSession = ({ lessonId, pageId, navigate }: LessonSessionProps) => {
 
   const handleQuizComplete = () => {
     SFX.playFanfare();
-    // Instead of navigating away immediately, show the Summary
     setMode(SessionMode.SUMMARY);
     window.scrollTo(0, 0);
   };
@@ -657,6 +684,10 @@ const LessonSession = ({ lessonId, pageId, navigate }: LessonSessionProps) => {
   const handleSummaryComplete = () => {
       markLessonComplete(lessonId || '');
       navigate('/contents');
+  };
+
+  const handleAskTeacher = () => {
+      navigate('/ask-teacher');
   };
 
   const finalQuizSentence = quizSentence || currentSentence;
@@ -787,7 +818,8 @@ const LessonSession = ({ lessonId, pageId, navigate }: LessonSessionProps) => {
         {mode === SessionMode.SUMMARY && lesson.summary && (
             <LessonSummary 
                 summary={lesson.summary} 
-                onComplete={handleSummaryComplete} 
+                onComplete={handleSummaryComplete}
+                onAskTeacher={handleAskTeacher} // Pass the handler
             />
         )}
       </div>
@@ -836,7 +868,9 @@ interface CoverScreenProps {
   navigate: (path: string) => void;
 }
 
+// ... [CoverScreen same as before] ...
 const CoverScreen = ({ navigate }: CoverScreenProps) => {
+    // ... same code ...
     const progress = getProgress();
     const safeStreak = progress?.currentStreak || 0; 
     const [quoteIdx, setQuoteIdx] = useState(0);
@@ -954,9 +988,9 @@ const CoverScreen = ({ navigate }: CoverScreenProps) => {
         </motion.div>
       </div>
     );
-  };
+};
   
-  const App = () => {
+const App = () => {
     const [progress, setProgress] = useState(getProgress());
     const path = useHashLocation();
   
@@ -1000,6 +1034,14 @@ const CoverScreen = ({ navigate }: CoverScreenProps) => {
               <ProfileScreen />
             </MainLayout>
         );
+    } else if (path === '/ask-teacher') {
+         content = (
+            <GeminiChat 
+               apiKey={progress.geminiApiKey} 
+               onSaveKey={updateApiKey} 
+               navigate={navigate}
+            />
+         );
     } else if (path.startsWith('/read/')) {
           const parts = path.split('/');
           const lessonId = parts[2];
@@ -1011,6 +1053,6 @@ const CoverScreen = ({ navigate }: CoverScreenProps) => {
     }
   
     return <div>{content}</div>;
-  };
+};
   
-  export default App;
+export default App;
