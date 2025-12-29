@@ -14,6 +14,9 @@ export const AudioControl: React.FC<AudioControlProps> = ({ text, audioSrc }) =>
 
   // Safety cleanup: Stop audio if component unmounts or text changes
   useEffect(() => {
+    // Reset state when text changes (new slide)
+    setIsPlaying(false);
+    
     return () => {
         if (stopAudioRef.current) {
             stopAudioRef.current();
@@ -33,6 +36,7 @@ export const AudioControl: React.FC<AudioControlProps> = ({ text, audioSrc }) =>
       stopAudioRef.current = playArabicAudio(text, audioSrc, () => {
           // Callback ketika audio selesai
           setIsPlaying(false);
+          stopAudioRef.current = null;
       });
     }
   };

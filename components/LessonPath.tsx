@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { CheckCircle2, Lock, Play, Star, BookOpen, Trophy, Flame, Medal, X, GraduationCap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LESSON_DATA } from '../services/data';
@@ -12,6 +12,7 @@ interface LessonPathProps {
 
 export const LessonPath: React.FC<LessonPathProps> = ({ progress, navigate }) => {
   const [showProfileCard, setShowProfileCard] = useState(false);
+  const activeNodeRef = useRef<HTMLDivElement>(null);
 
   // --- INTELLIGENT PROGRESS LOGIC ---
   
@@ -30,6 +31,15 @@ export const LessonPath: React.FC<LessonPathProps> = ({ progress, navigate }) =>
 
   const activeLesson = LESSON_DATA[activeLessonIndex];
   
+  // Auto-scroll to active lesson on mount
+  useEffect(() => {
+    if (activeNodeRef.current) {
+        setTimeout(() => {
+            activeNodeRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 500); // Slight delay to allow animations to settle
+    }
+  }, []); // Run once on mount
+
   const stats = {
     vocabMastered: progress.completedLessons.length * 24, // Approx 24 words per lesson
     currentStreak: progress.currentStreak, 
@@ -229,6 +239,7 @@ export const LessonPath: React.FC<LessonPathProps> = ({ progress, navigate }) =>
             return (
               <motion.div 
                 key={lesson.id}
+                ref={isCurrent ? activeNodeRef : null} // REF for Auto-Scroll
                 initial={{ opacity: 0, x: -20 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true, margin: "-50px" }}
