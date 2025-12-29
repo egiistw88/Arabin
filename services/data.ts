@@ -6,6 +6,16 @@ export const LESSON_DATA: Lesson[] = [
     title: 'Pelajaran 1: Haza (Ini)',
     description: 'Dasar menunjuk benda jarak dekat dan membedakan benda berakal vs tidak.',
     concepts: ['Isim Isyarah (Kata Tunjuk)', 'Mubtada-Khobar', 'Pertanyaan (Ma & Man)'],
+    summary: {
+      title: "Khulashah: Logika Penunjuk",
+      keyPoints: [
+        "HAZA (هَذَا) adalah kata tunjuk untuk benda laki-laki (Muzakkar) yang dekat.",
+        "Setiap benda mati ditanya menggunakan MA (مَا).",
+        "Setiap manusia (berakal) ditanya menggunakan MAN (مَنْ).",
+        "Pola kalimat dasar adalah: [Kata Tunjuk] + [Benda]."
+      ],
+      teacherTip: "Ingat rumus '3M': Ma untuk Mati, Man untuk Manusia. Jangan tertukar! Haza selalu dianggap satu paket dengan kata setelahnya jika kata setelahnya tidak pakai 'Al'."
+    },
     vocabulary: [
       { arabic: 'بَيْتٌ', latin: 'Baitun', meaning: 'Rumah' },
       { arabic: 'مَسْجِدٌ', latin: 'Masjidun', meaning: 'Masjid' },
@@ -130,6 +140,15 @@ export const LESSON_DATA: Lesson[] = [
     title: 'Pelajaran 2: Zalika (Itu)',
     description: 'Menunjuk benda jarak jauh.',
     concepts: ['Isim Isyarah Jauh', 'Wawu Athof (Kata Sambung)'],
+    summary: {
+      title: "Khulashah: Jauh & Dekat",
+      keyPoints: [
+        "ZALIKA (ذَلِكَ) fungsinya persis sama dengan Haza, tapi untuk benda JAUH.",
+        "Kata WA (وَ) artinya 'Dan', berfungsi menyambung dua kalimat setara.",
+        "Semua benda di bab ini masih dianggap Muzakkar (Laki-laki)."
+      ],
+      teacherTip: "Bayangkan 'Zalika' seperti menunjuk bintang di langit. Jauh di sana. Kalau 'Haza' seperti memegang pulpen di tangan."
+    },
     vocabulary: [
       { arabic: 'ذَلِكَ', latin: 'Zalika', meaning: 'Itu' },
       { arabic: 'إِمَامٌ', latin: 'Imamun', meaning: 'Imam/Pemimpin' },
@@ -169,6 +188,15 @@ export const LESSON_DATA: Lesson[] = [
     title: 'Pelajaran 3: Al (Ma\'rifah)',
     description: 'Perubahan dari "Sebuah Rumah" menjadi "Rumah Itu" (Spesifik).',
     concepts: ['Al-Ma\'rifah (Definite)', 'Nakirah (Indefinite)', 'Huruf Syamsiah & Qamariah'],
+    summary: {
+      title: "Khulashah: Perang Tanwin vs Al",
+      keyPoints: [
+        "Rumus Emas: 'AL' dan 'TANWIN' adalah musuh bebuyutan. Tidak boleh ada dalam satu kata!",
+        "Qolamun (Pena mana saja) -> Al-Qolamu (Pena yang itu).",
+        "Pola kalimat sempurna: [Kata Makrifat] + [Kata Sifat/Keterangan]. Contoh: Al-Qolamu Maksurun."
+      ],
+      teacherTip: "Bayangkan 'Al' itu seperti topi raja. Kalau pakai topi (Al), ekornya (Tanwin 'un') harus dibuang jadi 'u' saja."
+    },
     vocabulary: [
       { arabic: 'مَكْسُوْرٌ', latin: 'Maksurun', meaning: 'Patah/Rusak' },
       { arabic: 'مَفْتُوْحٌ', latin: 'Maftuuhun', meaning: 'Terbuka' },
@@ -209,6 +237,15 @@ export const LESSON_DATA: Lesson[] = [
     title: 'Pelajaran 4: Huruf Jar',
     description: 'Kekuatan "Amil" (Operator) yang mengubah harakat menjadi Kasrah (i).',
     concepts: ['Huruf Jar (Fi, Ala, Min, Ila)', 'Isim Majrur', 'Dhomir (Huwa, Hiya)'],
+    summary: {
+      title: "Khulashah: Magnet Kasrah",
+      keyPoints: [
+        "Huruf Jar (Fi, Ala, Min, Ila) adalah 'Operator'. Mereka mengubah kata setelahnya.",
+        "Efeknya: Harakat akhir kata setelahnya DITARIK ke bawah menjadi KASRAH (i).",
+        "Rumus: Fi + Al-Baitu = Fil-Baiti (Bukan Fil-Baitu)."
+      ],
+      teacherTip: "Sebut huruf-huruf ini sebagai 'Huruf Penarik'. Begitu mata melihat 'Fi' atau 'Ala', mulut harus siap membunyikan 'i' pada kata berikutnya."
+    },
     vocabulary: [
       { arabic: 'فِي', latin: 'Fii', meaning: 'Di dalam' },
       { arabic: 'عَلَى', latin: 'Ala', meaning: 'Di atas' },

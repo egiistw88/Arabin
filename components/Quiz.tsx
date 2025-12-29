@@ -14,63 +14,61 @@ export const Quiz: React.FC<QuizProps> = ({ sentence, onComplete }) => {
       return null;
   }
 
-  const [targetState, setTargetState] = useState<{ id: string, type: string } | null>(null);
+  const [targetType, setTargetType] = useState<'OPERATOR' | 'SUBJECT' | 'NOUN' | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (!sentence || !sentence.segments) return;
 
-    let targetSegment = sentence.segments.find(s => s.type === WordType.OPERATOR);
-    let type = 'OPERATOR';
+    // Determine the question type based on sentence content availability
+    let type: 'OPERATOR' | 'SUBJECT' | 'NOUN' | null = null;
+    
+    const hasOperator = sentence.segments.some(s => s.type === WordType.OPERATOR);
+    const hasSubject = sentence.segments.some(s => 
+        s.grammaticalRole === 'Mubtada' || 
+        s.grammaticalRole === 'Fa\'il' || 
+        s.grammaticalRole === 'Fail'
+    );
 
-    if (!targetSegment) {
-        targetSegment = sentence.segments.find(s => 
-            s.grammaticalRole === 'Mubtada' || 
-            s.grammaticalRole === 'Fa\'il' || 
-            s.grammaticalRole === 'Fail'
-        );
+    if (hasOperator) {
+        type = 'OPERATOR';
+    } else if (hasSubject) {
         type = 'SUBJECT';
-    }
-
-    if (!targetSegment) {
-        targetSegment = sentence.segments.find(s => s.type === WordType.NOUN);
+    } else {
         type = 'NOUN';
     }
 
-    if (targetSegment) {
-        setTargetState({ id: targetSegment.id, type });
-    }
+    setTargetType(type);
+    setSelectedId(null);
+    setIsCorrect(null);
   }, [sentence]);
 
-  if (!targetState) {
-    return (
-        <div className="flex flex-col items-center justify-center p-8 text-center min-h-[400px]">
-           <motion.div 
-             initial={{ scale: 0 }} 
-             animate={{ scale: 1 }} 
-             transition={{ type: "spring" }}
-             className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-6"
-           >
-              <Trophy className="w-10 h-10 text-green-700" />
-           </motion.div>
-           <h3 className="font-serif font-bold text-2xl mb-2">Bab Selesai!</h3>
-           <p className="text-gray-500 mb-8">Kamu telah menyelesaikan materi bacaan ini.</p>
-           <button 
-             onClick={onComplete}
-             className="px-8 py-3 bg-[#1a1512] text-white rounded-xl font-bold shadow-lg hover:scale-105 transition-transform"
-           >
-             Lanjut ke Menu
-           </button>
-        </div>
-    );
-  }
+  if (!targetType) return null;
 
   const handleSelect = (id: string) => {
     if (isCorrect === true) return; // Prevent clicking after success
 
     setSelectedId(id);
-    const correct = id === targetState.id;
+    const selectedSegment = sentence.segments.find(s => s.id === id);
+    
+    if (!selectedSegment) return;
+
+    let correct = false;
+
+    // INTELLIGENT VALIDATION: Check Role/Type instead of strict ID matching
+    if (targetType === 'OPERATOR') {
+        correct = selectedSegment.type === WordType.OPERATOR;
+    } else if (targetType === 'SUBJECT') {
+        // Any word acting as Mubtada/Fail is correct, even if there are duplicates
+        correct = selectedSegment.grammaticalRole === 'Mubtada' || 
+                  selectedSegment.grammaticalRole === 'Fa\'il' ||
+                  selectedSegment.grammaticalRole === 'Fail';
+    } else {
+        // Fallback for simple sentences
+        correct = selectedSegment.type === WordType.NOUN;
+    }
+
     setIsCorrect(correct);
     
     if (correct) {
@@ -82,7 +80,7 @@ export const Quiz: React.FC<QuizProps> = ({ sentence, onComplete }) => {
   };
 
   const getQuestionText = () => {
-    if (targetState.type === 'OPERATOR') {
+    if (targetType === 'OPERATOR') {
         return (
             <>
                 Tunjukkan manakah <br/>
@@ -90,7 +88,7 @@ export const Quiz: React.FC<QuizProps> = ({ sentence, onComplete }) => {
                 dalam kalimat ini:
             </>
         );
-    } else if (targetState.type === 'SUBJECT') {
+    } else if (targetType === 'SUBJECT') {
         return (
             <>
                 Tunjukkan manakah <br/>

@@ -1,3 +1,4 @@
+
 // Grammatical Roles mapped to colors/functions
 export enum WordType {
   NOUN = 'Isim',
@@ -13,6 +14,14 @@ export enum LogicId {
   AFTER_PREPOSITION = 'rule_after_preposition', // The result (Majrur)
   DEMONSTRATIVE = 'rule_demonstrative', // Isim Isyarah
   QUESTION_TOOL = 'rule_question', // Istifham
+}
+
+// Session Modes for Lesson Flow
+export enum SessionMode {
+  EXPLORE = 'explore', 
+  BUILD = 'build',
+  QUIZ = 'quiz',
+  SUMMARY = 'summary'
 }
 
 export interface Segment {
@@ -44,6 +53,12 @@ export interface VocabularyItem {
   plural?: string; // Jamak
 }
 
+export interface LessonSummary {
+  title: string;
+  keyPoints: string[]; // Bullet points of logic learned
+  teacherTip: string; // The "Pro Tip" or mnemonic
+}
+
 export interface Lesson {
   id: string;
   title: string;
@@ -51,6 +66,7 @@ export interface Lesson {
   sentences: Sentence[];
   concepts: string[];
   vocabulary: VocabularyItem[]; // New: List of vocab for this lesson
+  summary?: LessonSummary; // NEW: Wrap-up content
 }
 
 export interface UserProgress {

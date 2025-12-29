@@ -123,8 +123,13 @@ export const LessonPath: React.FC<LessonPathProps> = ({ progress, navigate }) =>
             >
                 {/* Decoration */}
                 <div className="absolute top-0 left-0 w-full h-24 bg-[#1a1512] z-0"></div>
-                <div className="absolute top-4 right-4 z-10">
-                    <button onClick={() => setShowProfileCard(false)} className="bg-white/20 p-1 rounded-full text-white hover:bg-white/40">
+                
+                {/* Close Button - FIX: Changed z-index from 10 to 50 to stay above content */}
+                <div className="absolute top-4 right-4 z-50">
+                    <button 
+                        onClick={() => { SFX.playClick(); setShowProfileCard(false); }} 
+                        className="bg-white/20 p-1 rounded-full text-white hover:bg-white/40 transition-colors"
+                    >
                         <X className="w-5 h-5" />
                     </button>
                 </div>
@@ -167,7 +172,7 @@ export const LessonPath: React.FC<LessonPathProps> = ({ progress, navigate }) =>
                     </div>
 
                     <button 
-                        onClick={() => { setShowProfileCard(false); navigate('/profile'); }}
+                        onClick={() => { SFX.playClick(); setShowProfileCard(false); navigate('/profile'); }}
                         className="mt-6 text-xs font-bold text-gray-400 hover:text-[#8a1c1c] uppercase tracking-widest border-b border-transparent hover:border-[#8a1c1c] transition-all"
                     >
                         Lihat Profil Lengkap

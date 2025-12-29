@@ -11,7 +11,8 @@ import { BottomNav } from './components/BottomNav';
 import { LessonPath } from './components/LessonPath';
 import { TutorDialog } from './components/TutorDialog'; 
 import { ConfirmationDialog } from './components/ConfirmationDialog';
-import { Segment, VocabularyItem, UserProgress } from './types';
+import { LessonSummary } from './components/LessonSummary';
+import { Segment, VocabularyItem, UserProgress, SessionMode, Lesson } from './types';
 import { SFX } from './services/sfx';
 import { playArabicAudio } from './services/audio';
 
@@ -149,14 +150,13 @@ const useHashLocation = () => {
   return loc;
 };
 
-// QC UPDATE: Force scroll to top on navigation
+// Force scroll to top on navigation
 const navigate = (to: string) => {
   window.location.hash = to;
   window.scrollTo(0, 0); 
 };
 
 // --- LAYOUTS ---
-// QC UPDATE: Added PropsWithChildren for strict typing
 const MainLayout = ({ children, currentPath }: React.PropsWithChildren<{ currentPath: string }>) => (
   <div className="min-h-screen bg-[#f8f9fa] text-[#1a1512] pb-24">
     {children}
@@ -171,10 +171,10 @@ const DictionaryScreen = () => {
   const [revealedCards, setRevealedCards] = useState<Set<string>>(new Set());
   const [playingWord, setPlayingWord] = useState<string | null>(null);
 
-  const groupedVocab = LESSON_DATA.map(lesson => ({
+  const groupedVocab = LESSON_DATA.map((lesson: Lesson) => ({
     lessonTitle: lesson.title,
     lessonId: lesson.id,
-    items: lesson.vocabulary.filter(v => 
+    items: lesson.vocabulary.filter((v: VocabularyItem) => 
         v.latin.toLowerCase().includes(search.toLowerCase()) || 
         v.meaning.toLowerCase().includes(search.toLowerCase()) ||
         v.arabic.includes(search)
@@ -320,223 +320,218 @@ const DictionaryScreen = () => {
 };
 
 const ProfileScreen = () => {
-  const progress = getProgress();
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [tempName, setTempName] = useState(progress.userName || 'Penuntut Ilmu');
-  const [showResetDialog, setShowResetDialog] = useState(false);
-
-  const totalXp = progress.totalXp || 0;
-  const level = Math.floor(totalXp / 500) + 1;
-  const currentLevelXp = totalXp - ((level - 1) * 500);
-  const progressPercent = Math.min((currentLevelXp / 500) * 100, 100);
-
-  const getTitle = (lvl: number) => {
-      if (lvl >= 10) return "Al-Alim (Ahli)";
-      if (lvl >= 5) return "Thalib (Penuntut)";
-      return "Mubtadi (Pemula)";
-  };
-
-  const badges = [
-      { id: 'streak_3', icon: Flame, label: 'Istiqomah', desc: 'Streak 3 Hari', unlocked: progress.currentStreak >= 3 },
-      { id: 'streak_7', icon: Flame, label: 'Mujahid', desc: 'Streak 7 Hari', unlocked: progress.currentStreak >= 7 },
-      { id: 'first_step', icon: Star, label: 'Fatih', desc: 'Selesaikan 1 Bab', unlocked: progress.completedLessons.length >= 1 },
-      { id: 'scholar', icon: GraduationCap, label: 'Faqih', desc: 'Selesaikan 5 Bab', unlocked: progress.completedLessons.length >= 5 },
-  ];
-
-  const handleNameSave = () => {
-      SFX.playSuccess();
-      updateUserName(tempName);
-      setIsEditingName(false);
-  };
-
-  const performReset = () => {
-      localStorage.removeItem(STORAGE_KEY);
-      window.location.reload();
-  };
-
-  return (
-    <div className="min-h-screen bg-[#f8f9fa]">
-       
-       <ConfirmationDialog 
-          isOpen={showResetDialog}
-          title="Hapus Semua Data?"
-          message="PERINGATAN: Tindakan ini akan menghapus semua riwayat belajar, hafalan, dan XP Anda. Ini tidak dapat dibatalkan."
-          confirmLabel="Ya, Hapus Semuanya"
-          isDanger={true}
-          onConfirm={performReset}
-          onCancel={() => setShowResetDialog(false)}
-       />
-
-       {/* HEADER */}
-       <div className="bg-[#1a1512] text-[#fdfbf7] pt-10 pb-16 px-6 rounded-b-[40px] shadow-xl relative overflow-hidden">
-            <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/arabesque.png')]"></div>
-            
-            <div className="relative z-10 max-w-md mx-auto text-center">
-                <div className="relative inline-block mb-4">
-                     <motion.div 
-                        initial={{ scale: 0 }} animate={{ scale: 1 }}
-                        className="w-24 h-24 bg-[#fdfbf7] rounded-full flex items-center justify-center border-4 border-[#8a1c1c] shadow-2xl mx-auto"
-                     >
-                        <span className="font-serif font-bold text-4xl text-[#1a1512]">{tempName.charAt(0).toUpperCase()}</span>
-                     </motion.div>
-                     <div className="absolute -bottom-2 -right-2 bg-[#8a1c1c] text-white text-[10px] font-bold px-3 py-1 rounded-full border-2 border-[#1a1512]">
-                        Lvl {level}
-                     </div>
-                </div>
-
-                {isEditingName ? (
-                    <div className="flex items-center gap-2 justify-center mb-1">
-                        <input 
-                            autoFocus
-                            type="text" 
-                            value={tempName}
-                            onChange={(e) => setTempName(e.target.value)}
-                            className="bg-white/10 border border-white/20 rounded-lg px-3 py-1 text-center text-white font-serif font-bold focus:outline-none focus:border-[#8a1c1c]"
-                        />
-                        <button onClick={handleNameSave} className="p-1.5 bg-[#8a1c1c] rounded-md hover:bg-red-700"><RefreshCw className="w-4 h-4" /></button>
-                    </div>
-                ) : (
-                    <h2 
-                        onClick={() => { setIsEditingName(true); SFX.playClick(); }}
-                        className="text-2xl font-serif font-bold flex items-center justify-center gap-2 cursor-pointer hover:text-gray-300 transition-colors"
-                    >
-                        {progress.userName || 'Penuntut Ilmu'} 
-                        <Edit2 className="w-4 h-4 opacity-50" />
-                    </h2>
-                )}
-                
-                <p className="text-[#8a1c1c] font-sans text-xs font-bold uppercase tracking-[0.2em] mb-6">{getTitle(level)}</p>
-
-                <div className="bg-white/10 h-3 rounded-full overflow-hidden w-full max-w-[200px] mx-auto mb-2 relative">
-                    <motion.div 
-                        initial={{ width: 0 }} animate={{ width: `${progressPercent}%` }}
-                        transition={{ duration: 1, ease: "easeOut" }}
-                        className="h-full bg-gradient-to-r from-[#8a1c1c] to-red-500"
-                    />
-                </div>
-                <p className="text-[10px] text-gray-400">{currentLevelXp} / 500 XP menuju level {level + 1}</p>
-            </div>
-       </div>
-
-       <div className="max-w-md mx-auto px-6 -mt-10 relative z-20 space-y-6 pb-24">
+    const progress = getProgress();
+    const [isEditingName, setIsEditingName] = useState(false);
+    const [tempName, setTempName] = useState(progress.userName || 'Penuntut Ilmu');
+    const [showResetDialog, setShowResetDialog] = useState(false);
+  
+    const totalXp = progress.totalXp || 0;
+    const level = Math.floor(totalXp / 500) + 1;
+    const currentLevelXp = totalXp - ((level - 1) * 500);
+    const progressPercent = Math.min((currentLevelXp / 500) * 100, 100);
+  
+    const getTitle = (lvl: number) => {
+        if (lvl >= 10) return "Al-Alim (Ahli)";
+        if (lvl >= 5) return "Thalib (Penuntut)";
+        return "Mubtadi (Pemula)";
+    };
+  
+    const badges = [
+        { id: 'streak_3', icon: Flame, label: 'Istiqomah', desc: 'Streak 3 Hari', unlocked: progress.currentStreak >= 3 },
+        { id: 'streak_7', icon: Flame, label: 'Mujahid', desc: 'Streak 7 Hari', unlocked: progress.currentStreak >= 7 },
+        { id: 'first_step', icon: Star, label: 'Fatih', desc: 'Selesaikan 1 Bab', unlocked: progress.completedLessons.length >= 1 },
+        { id: 'scholar', icon: GraduationCap, label: 'Faqih', desc: 'Selesaikan 5 Bab', unlocked: progress.completedLessons.length >= 5 },
+    ];
+  
+    const handleNameSave = () => {
+        SFX.playSuccess();
+        updateUserName(tempName);
+        setIsEditingName(false);
+    };
+  
+    const performReset = () => {
+        localStorage.removeItem(STORAGE_KEY);
+        window.location.reload();
+    };
+  
+    return (
+      <div className="min-h-screen bg-[#f8f9fa]">
          
-         <div className="grid grid-cols-2 gap-4">
-             <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-2">
-                 <div className="p-2 bg-orange-50 rounded-full text-orange-600">
-                    <Flame className="w-6 h-6" />
-                 </div>
-                 <div className="text-center">
-                    <span className="block text-2xl font-bold text-[#1a1512]">{progress.currentStreak}</span>
-                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Hari Streak</span>
-                 </div>
-             </div>
-             
-             <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-2">
-                 <div className="p-2 bg-blue-50 rounded-full text-blue-600">
-                    <Trophy className="w-6 h-6" />
-                 </div>
-                 <div className="text-center">
-                    <span className="block text-2xl font-bold text-[#1a1512]">{progress.completedLessons.length}</span>
-                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Bab Selesai</span>
-                 </div>
-             </div>
-
-             <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-2 col-span-2">
-                 <div className="flex justify-between w-full px-4 items-center">
-                     <div className="flex items-center gap-3">
-                         <div className="p-2 bg-green-50 rounded-full text-green-600">
-                            <BookOpen className="w-5 h-5" />
-                         </div>
-                         <div className="text-left">
-                            <span className="block text-lg font-bold text-[#1a1512]">{progress.completedLessons.length * 24}</span>
-                            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Perkiraan Kata Dikuasai</span>
-                         </div>
-                     </div>
-                     <div className="h-10 w-px bg-gray-100"></div>
-                     <div className="text-right">
-                         <span className="block text-lg font-bold text-[#8a1c1c]">{totalXp}</span>
-                         <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Total XP</span>
-                     </div>
-                 </div>
-             </div>
+         <ConfirmationDialog 
+            isOpen={showResetDialog}
+            title="Hapus Semua Data?"
+            message="PERINGATAN: Tindakan ini akan menghapus semua riwayat belajar, hafalan, dan XP Anda. Ini tidak dapat dibatalkan."
+            confirmLabel="Ya, Hapus Semuanya"
+            isDanger={true}
+            onConfirm={performReset}
+            onCancel={() => setShowResetDialog(false)}
+         />
+  
+         {/* HEADER */}
+         <div className="bg-[#1a1512] text-[#fdfbf7] pt-10 pb-16 px-6 rounded-b-[40px] shadow-xl relative overflow-hidden">
+              <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/arabesque.png')]"></div>
+              
+              <div className="relative z-10 max-w-md mx-auto text-center">
+                  <div className="relative inline-block mb-4">
+                       <motion.div 
+                          initial={{ scale: 0 }} animate={{ scale: 1 }}
+                          className="w-24 h-24 bg-[#fdfbf7] rounded-full flex items-center justify-center border-4 border-[#8a1c1c] shadow-2xl mx-auto"
+                       >
+                          <span className="font-serif font-bold text-4xl text-[#1a1512]">{tempName.charAt(0).toUpperCase()}</span>
+                       </motion.div>
+                       <div className="absolute -bottom-2 -right-2 bg-[#8a1c1c] text-white text-[10px] font-bold px-3 py-1 rounded-full border-2 border-[#1a1512]">
+                          Lvl {level}
+                       </div>
+                  </div>
+  
+                  {isEditingName ? (
+                      <div className="flex items-center gap-2 justify-center mb-1">
+                          <input 
+                              autoFocus
+                              type="text" 
+                              value={tempName}
+                              onChange={(e) => setTempName(e.target.value)}
+                              className="bg-white/10 border border-white/20 rounded-lg px-3 py-1 text-center text-white font-serif font-bold focus:outline-none focus:border-[#8a1c1c]"
+                          />
+                          <button onClick={handleNameSave} className="p-1.5 bg-[#8a1c1c] rounded-md hover:bg-red-700"><RefreshCw className="w-4 h-4" /></button>
+                      </div>
+                  ) : (
+                      <h2 
+                          onClick={() => { setIsEditingName(true); SFX.playClick(); }}
+                          className="text-2xl font-serif font-bold flex items-center justify-center gap-2 cursor-pointer hover:text-gray-300 transition-colors"
+                      >
+                          {progress.userName || 'Penuntut Ilmu'} 
+                          <Edit2 className="w-4 h-4 opacity-50" />
+                      </h2>
+                  )}
+                  
+                  <p className="text-[#8a1c1c] font-sans text-xs font-bold uppercase tracking-[0.2em] mb-6">{getTitle(level)}</p>
+  
+                  <div className="bg-white/10 h-3 rounded-full overflow-hidden w-full max-w-[200px] mx-auto mb-2 relative">
+                      <motion.div 
+                          initial={{ width: 0 }} animate={{ width: `${progressPercent}%` }}
+                          transition={{ duration: 1, ease: "easeOut" }}
+                          className="h-full bg-gradient-to-r from-[#8a1c1c] to-red-500"
+                      />
+                  </div>
+                  <p className="text-[10px] text-gray-400">{currentLevelXp} / 500 XP menuju level {level + 1}</p>
+              </div>
          </div>
-
-         <div>
-             <h3 className="font-serif font-bold text-[#1a1512] mb-3 flex items-center gap-2">
-                <Medal className="w-4 h-4 text-[#8a1c1c]" />
-                Pencapaian (Badges)
-             </h3>
-             <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 overflow-x-auto no-scrollbar flex gap-4">
-                {badges.map((badge) => (
-                    <div key={badge.id} className={`flex-shrink-0 flex flex-col items-center w-24 text-center ${!badge.unlocked ? 'opacity-40 grayscale' : ''}`}>
-                        <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-2 border-2 ${badge.unlocked ? 'bg-yellow-50 border-yellow-400 text-yellow-600' : 'bg-gray-100 border-gray-200 text-gray-400'}`}>
-                            <badge.icon className="w-6 h-6" />
-                        </div>
-                        <span className="text-xs font-bold text-[#1a1512]">{badge.label}</span>
-                        <span className="text-[9px] text-gray-400 mt-0.5">{badge.desc}</span>
-                    </div>
-                ))}
-             </div>
+  
+         <div className="max-w-md mx-auto px-6 -mt-10 relative z-20 space-y-6 pb-24">
+           
+           <div className="grid grid-cols-2 gap-4">
+               <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-2">
+                   <div className="p-2 bg-orange-50 rounded-full text-orange-600">
+                      <Flame className="w-6 h-6" />
+                   </div>
+                   <div className="text-center">
+                      <span className="block text-2xl font-bold text-[#1a1512]">{progress.currentStreak}</span>
+                      <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Hari Streak</span>
+                   </div>
+               </div>
+               
+               <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-2">
+                   <div className="p-2 bg-blue-50 rounded-full text-blue-600">
+                      <Trophy className="w-6 h-6" />
+                   </div>
+                   <div className="text-center">
+                      <span className="block text-2xl font-bold text-[#1a1512]">{progress.completedLessons.length}</span>
+                      <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Bab Selesai</span>
+                   </div>
+               </div>
+  
+               <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-2 col-span-2">
+                   <div className="flex justify-between w-full px-4 items-center">
+                       <div className="flex items-center gap-3">
+                           <div className="p-2 bg-green-50 rounded-full text-green-600">
+                              <BookOpen className="w-5 h-5" />
+                           </div>
+                           <div className="text-left">
+                              <span className="block text-lg font-bold text-[#1a1512]">{progress.completedLessons.length * 24}</span>
+                              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Perkiraan Kata Dikuasai</span>
+                           </div>
+                       </div>
+                       <div className="h-10 w-px bg-gray-100"></div>
+                       <div className="text-right">
+                           <span className="block text-lg font-bold text-[#8a1c1c]">{totalXp}</span>
+                           <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Total XP</span>
+                       </div>
+                   </div>
+               </div>
+           </div>
+  
+           <div>
+               <h3 className="font-serif font-bold text-[#1a1512] mb-3 flex items-center gap-2">
+                  <Medal className="w-4 h-4 text-[#8a1c1c]" />
+                  Pencapaian (Badges)
+               </h3>
+               <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 overflow-x-auto no-scrollbar flex gap-4">
+                  {badges.map((badge) => (
+                      <div key={badge.id} className={`flex-shrink-0 flex flex-col items-center w-24 text-center ${!badge.unlocked ? 'opacity-40 grayscale' : ''}`}>
+                          <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-2 border-2 ${badge.unlocked ? 'bg-yellow-50 border-yellow-400 text-yellow-600' : 'bg-gray-100 border-gray-200 text-gray-400'}`}>
+                              <badge.icon className="w-6 h-6" />
+                          </div>
+                          <span className="text-xs font-bold text-[#1a1512]">{badge.label}</span>
+                          <span className="text-[9px] text-gray-400 mt-0.5">{badge.desc}</span>
+                      </div>
+                  ))}
+               </div>
+           </div>
+  
+           <div>
+              <h3 className="font-serif font-bold text-[#1a1512] mb-3 flex items-center gap-2">
+                  <Settings className="w-4 h-4 text-[#8a1c1c]" />
+                  Pengaturan
+               </h3>
+               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                   <button 
+                      onClick={() => { setIsEditingName(true); window.scrollTo({top: 0, behavior: 'smooth'}); }}
+                      className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors border-b border-gray-100"
+                   >
+                      <div className="flex items-center gap-3">
+                          <Edit2 className="w-4 h-4 text-gray-400" />
+                          <span className="text-sm font-bold text-[#1a1512]">Ubah Nama Panggilan</span>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-gray-300" />
+                   </button>
+                   
+                   <button 
+                      onClick={() => { SFX.playPop(); resetGuidanceHistory(); alert("Riwayat bimbingan guru telah direset."); }}
+                      className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors border-b border-gray-100"
+                   >
+                      <div className="flex items-center gap-3">
+                          <RotateCcw className="w-4 h-4 text-gray-400" />
+                          <span className="text-sm font-bold text-[#1a1512]">Tampilkan Lagi Tips Guru</span>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-gray-300" />
+                   </button>
+  
+                   <button 
+                      onClick={() => {
+                          SFX.playClick();
+                          setShowResetDialog(true);
+                      }}
+                      className="w-full px-5 py-4 flex items-center justify-between hover:bg-red-50 transition-colors group"
+                   >
+                      <div className="flex items-center gap-3">
+                          <LogOut className="w-4 h-4 text-red-400 group-hover:text-red-600" />
+                          <span className="text-sm font-bold text-red-400 group-hover:text-red-600">Reset Semua Data</span>
+                      </div>
+                   </button>
+               </div>
+           </div>
+  
+           <div className="text-center pb-8 pt-4">
+               <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Arabin v1.0.4</p>
+           </div>
+  
          </div>
-
-         <div>
-            <h3 className="font-serif font-bold text-[#1a1512] mb-3 flex items-center gap-2">
-                <Settings className="w-4 h-4 text-[#8a1c1c]" />
-                Pengaturan
-             </h3>
-             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                 <button 
-                    onClick={() => { setIsEditingName(true); window.scrollTo({top: 0, behavior: 'smooth'}); }}
-                    className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors border-b border-gray-100"
-                 >
-                    <div className="flex items-center gap-3">
-                        <Edit2 className="w-4 h-4 text-gray-400" />
-                        <span className="text-sm font-bold text-[#1a1512]">Ubah Nama Panggilan</span>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-gray-300" />
-                 </button>
-                 
-                 <button 
-                    onClick={() => { SFX.playPop(); resetGuidanceHistory(); alert("Riwayat bimbingan guru telah direset."); }}
-                    className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors border-b border-gray-100"
-                 >
-                    <div className="flex items-center gap-3">
-                        <RotateCcw className="w-4 h-4 text-gray-400" />
-                        <span className="text-sm font-bold text-[#1a1512]">Tampilkan Lagi Tips Guru</span>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-gray-300" />
-                 </button>
-
-                 <button 
-                    onClick={() => {
-                        SFX.playClick();
-                        setShowResetDialog(true);
-                    }}
-                    className="w-full px-5 py-4 flex items-center justify-between hover:bg-red-50 transition-colors group"
-                 >
-                    <div className="flex items-center gap-3">
-                        <LogOut className="w-4 h-4 text-red-400 group-hover:text-red-600" />
-                        <span className="text-sm font-bold text-red-400 group-hover:text-red-600">Reset Semua Data</span>
-                    </div>
-                 </button>
-             </div>
-         </div>
-
-         <div className="text-center pb-8 pt-4">
-             <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Arabin v1.0.4</p>
-         </div>
-
-       </div>
-    </div>
-  );
-}
+      </div>
+    );
+};
 
 // --- INTELLIGENT LESSON SESSION ---
-enum SessionMode {
-  EXPLORE = 'explore', 
-  BUILD = 'build',
-  QUIZ = 'quiz'
-}
 
 interface LessonSessionProps {
     lessonId?: string;
@@ -563,10 +558,13 @@ const LessonSession = ({ lessonId, pageId, navigate }: LessonSessionProps) => {
   }, [lessonId]); 
   
   useEffect(() => {
-    setMode(SessionMode.EXPLORE);
-    setSelectedSegment(null);
-    setShowTutorDialog(false); 
-    window.scrollTo(0,0);
+    // If not in summary mode, reset normally. If in summary, we stay.
+    if (mode !== SessionMode.SUMMARY) {
+        setMode(SessionMode.EXPLORE);
+        setSelectedSegment(null);
+        setShowTutorDialog(false); 
+        window.scrollTo(0,0);
+    }
   }, [pageIndex, lessonId]);
 
   useEffect(() => {
@@ -623,13 +621,13 @@ const LessonSession = ({ lessonId, pageId, navigate }: LessonSessionProps) => {
     SFX.playClick();
     if (mode === SessionMode.EXPLORE) {
       setMode(SessionMode.BUILD);
-      window.scrollTo(0, 0); // QC: Reset scroll on mode change
+      window.scrollTo(0, 0); 
     } else if (mode === SessionMode.BUILD) {
       if (pageIndex < totalPages - 1) {
         navigate(`/read/${lessonId}/${pageIndex + 1}`);
       } else {
         setMode(SessionMode.QUIZ);
-        window.scrollTo(0, 0); // QC: Reset scroll on mode change
+        window.scrollTo(0, 0); 
       }
     }
   };
@@ -649,6 +647,18 @@ const LessonSession = ({ lessonId, pageId, navigate }: LessonSessionProps) => {
     }
   };
 
+  const handleQuizComplete = () => {
+    SFX.playFanfare();
+    // Instead of navigating away immediately, show the Summary
+    setMode(SessionMode.SUMMARY);
+    window.scrollTo(0, 0);
+  };
+
+  const handleSummaryComplete = () => {
+      markLessonComplete(lessonId || '');
+      navigate('/contents');
+  };
+
   const finalQuizSentence = quizSentence || currentSentence;
 
   return (
@@ -662,15 +672,17 @@ const LessonSession = ({ lessonId, pageId, navigate }: LessonSessionProps) => {
         <div className="flex-1 flex flex-col justify-center">
            <div className="flex justify-between items-center mb-1">
              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-               {mode === SessionMode.EXPLORE ? 'FAHAMI (Explore)' : mode === SessionMode.BUILD ? 'SUSUN (Practice)' : 'UJIAN (Final)'}
+               {mode === SessionMode.EXPLORE ? 'FAHAMI (Explore)' : mode === SessionMode.BUILD ? 'SUSUN (Practice)' : mode === SessionMode.SUMMARY ? 'KHULASAH (Summary)' : 'UJIAN (Final)'}
              </span>
-             <span className="text-[10px] font-bold text-[#1a1512]">{pageIndex + 1} / {totalPages}</span>
+             {mode !== SessionMode.SUMMARY && (
+                 <span className="text-[10px] font-bold text-[#1a1512]">{pageIndex + 1} / {totalPages}</span>
+             )}
            </div>
            <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
             <motion.div 
               className="h-full bg-[#8a1c1c]"
               initial={{ width: 0 }}
-              animate={{ width: `${((pageIndex + 1) / totalPages) * 100}%` }}
+              animate={{ width: mode === SessionMode.SUMMARY ? '100%' : `${((pageIndex + 1) / totalPages) * 100}%` }}
             />
            </div>
         </div>
@@ -767,13 +779,16 @@ const LessonSession = ({ lessonId, pageId, navigate }: LessonSessionProps) => {
              <div className="flex-1 animate-in slide-in-from-right duration-300">
                 <Quiz 
                   sentence={finalQuizSentence} 
-                  onComplete={() => {
-                    SFX.playFanfare();
-                    markLessonComplete(lessonId || '');
-                    navigate('/contents');
-                  }} 
+                  onComplete={handleQuizComplete} 
                 />
              </div>
+        )}
+
+        {mode === SessionMode.SUMMARY && lesson.summary && (
+            <LessonSummary 
+                summary={lesson.summary} 
+                onComplete={handleSummaryComplete} 
+            />
         )}
       </div>
 
@@ -817,186 +832,185 @@ const LessonSession = ({ lessonId, pageId, navigate }: LessonSessionProps) => {
   );
 };
 
-// --- NEW INTERACTIVE COVER SCREEN ---
 interface CoverScreenProps {
-    navigate: (path: string) => void;
+  navigate: (path: string) => void;
 }
 
 const CoverScreen = ({ navigate }: CoverScreenProps) => {
-  const progress = getProgress();
-  const safeStreak = progress?.currentStreak || 0; 
-  const [quoteIdx, setQuoteIdx] = useState(0);
-  const [rotation, setRotation] = useState(0);
+    const progress = getProgress();
+    const safeStreak = progress?.currentStreak || 0; 
+    const [quoteIdx, setQuoteIdx] = useState(0);
+    const [rotation, setRotation] = useState(0);
+    
+    const quotes = [
+        { arab: "مَنْ جَدَّ وَجَدَ", arti: "Barangsiapa bersungguh-sungguh, ia akan dapat." },
+        { arab: "مَنْ صَبَرَ ظَفِرَ", arti: "Barangsiapa bersabar, ia akan beruntung." },
+        { arab: "اَلْعِلْمُ بِلَا عَمَلٍ كَالشَّجَرِ بِلَا ثَمَرٍ", arti: "Ilmu tanpa amal bagai pohon tak berbuah." }
+    ];
   
-  const quotes = [
-      { arab: "مَنْ جَدَّ وَجَدَ", arti: "Barangsiapa bersungguh-sungguh, ia akan dapat." },
-      { arab: "مَنْ صَبَرَ ظَفِرَ", arti: "Barangsiapa bersabar, ia akan beruntung." },
-      { arab: "اَلْعِلْمُ بِلَا عَمَلٍ كَالشَّجَرِ بِلَا ثَمَرٍ", arti: "Ilmu tanpa amal bagai pohon tak berbuah." }
-  ];
-
-  const handleLogoClick = () => {
-      SFX.playSuccess();
-      setRotation(r => r + 360);
-  };
-
-  const nextQuote = () => {
-      SFX.playPop();
-      setQuoteIdx((prev) => (prev + 1) % quotes.length);
-  };
+    const handleLogoClick = () => {
+        SFX.playSuccess();
+        setRotation(r => r + 360);
+    };
   
-  const particles = [
-    { x: '10%', y: '20%', size: 40, delay: 0 },
-    { x: '80%', y: '15%', size: 60, delay: 2 },
-    { x: '50%', y: '60%', size: 90, delay: 4 },
-    { x: '15%', y: '80%', size: 30, delay: 1 },
-    { x: '85%', y: '70%', size: 50, delay: 3 },
-  ];
-
-  return (
-    <div className="min-h-screen bg-[#fdfbf7] flex flex-col items-center justify-center p-6 relative overflow-hidden">
-      {particles.map((p, i) => (
-        <motion.div
-          key={i}
-          className="absolute bg-[#1a1512] rounded-full opacity-[0.03]"
-          style={{ left: p.x, top: p.y, width: p.size, height: p.size } as any}
-          animate={{ y: [0, -20, 0], scale: [1, 1.1, 1] }}
-          transition={{ duration: 5 + i, repeat: Infinity, ease: "easeInOut", delay: p.delay }}
-        />
-      ))}
-      
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 1 }}
-        className="relative z-10 flex flex-col items-center max-w-md w-full"
-      >
-        {/* INTERACTIVE LOGO */}
+    const nextQuote = () => {
+        SFX.playPop();
+        setQuoteIdx((prev) => (prev + 1) % quotes.length);
+    };
+    
+    const particles = [
+      { x: '10%', y: '20%', size: 40, delay: 0 },
+      { x: '80%', y: '15%', size: 60, delay: 2 },
+      { x: '50%', y: '60%', size: 90, delay: 4 },
+      { x: '15%', y: '80%', size: 30, delay: 1 },
+      { x: '85%', y: '70%', size: 50, delay: 3 },
+    ];
+  
+    return (
+      <div className="min-h-screen bg-[#fdfbf7] flex flex-col items-center justify-center p-6 relative overflow-hidden">
+        {particles.map((p, i) => (
+          <motion.div
+            key={i}
+            className="absolute bg-[#1a1512] rounded-full opacity-[0.03]"
+            style={{ left: p.x, top: p.y, width: p.size, height: p.size }}
+            animate={{ y: [0, -20, 0], scale: [1, 1.1, 1] }}
+            transition={{ duration: 5 + i, repeat: Infinity, ease: "easeInOut", delay: p.delay }}
+          />
+        ))}
+        
         <motion.div 
-           animate={{ y: [0, -8, 0], rotate: rotation }}
-           transition={{ y: { duration: 4, repeat: Infinity, ease: "easeInOut" }, rotate: { duration: 0.6, type: "spring" } }}
-           className="mb-8 cursor-pointer"
-           onClick={handleLogoClick}
-           whileTap={{ scale: 0.9 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1 }}
+          className="relative z-10 flex flex-col items-center max-w-md w-full"
         >
-          <div className="w-24 h-24 bg-[#1a1512] rounded-3xl flex items-center justify-center shadow-xl rotate-3 border-b-4 border-r-4 border-[#8a1c1c] group hover:scale-105 transition-transform">
-             <span className="font-arabic text-6xl text-[#fdfbf7] mt-2 select-none group-hover:text-[#8a1c1c] transition-colors">ع</span>
+          {/* INTERACTIVE LOGO */}
+          <motion.div 
+             animate={{ y: [0, -8, 0], rotate: rotation }}
+             transition={{ y: { duration: 4, repeat: Infinity, ease: "easeInOut" }, rotate: { duration: 0.6, type: "spring" } }}
+             className="mb-8 cursor-pointer"
+             onClick={handleLogoClick}
+             whileTap={{ scale: 0.9 }}
+          >
+            <div className="w-24 h-24 bg-[#1a1512] rounded-3xl flex items-center justify-center shadow-xl rotate-3 border-b-4 border-r-4 border-[#8a1c1c] group hover:scale-105 transition-transform">
+               <span className="font-arabic text-6xl text-[#fdfbf7] mt-2 select-none group-hover:text-[#8a1c1c] transition-colors">ع</span>
+            </div>
+          </motion.div>
+  
+          <h1 className="font-serif text-5xl text-[#1a1512] font-bold tracking-tight mb-2">Arabin</h1>
+          <div className="h-1 w-12 bg-[#8a1c1c] rounded-full mb-6"></div>
+          <p className="font-sans text-sm text-gray-500 uppercase tracking-[0.2em] mb-8">Belajar Logika Arab</p>
+          
+          {/* INTERACTIVE FEATURE: KALAM HIKMAH */}
+          <div 
+              onClick={nextQuote}
+              className="w-full bg-white border border-dashed border-gray-300 rounded-xl p-4 mb-10 cursor-pointer relative group hover:border-[#8a1c1c] transition-colors"
+          >
+              <Quote className="absolute -top-3 left-4 w-6 h-6 bg-[#fdfbf7] text-[#8a1c1c] px-1" />
+              <motion.div
+                  key={quoteIdx}
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                  className="text-center"
+              >
+                  <p className="font-arabic text-xl font-bold mb-2 text-[#1a1512]">{quotes[quoteIdx].arab}</p>
+                  <p className="font-serif text-xs italic text-gray-500">"{quotes[quoteIdx].arti}"</p>
+              </motion.div>
+              <div className="absolute -bottom-3 right-4 bg-[#fdfbf7] px-2 text-[10px] text-gray-400 flex items-center gap-1 group-hover:text-[#8a1c1c]">
+                  <RefreshCw className="w-3 h-3" /> Tap untuk ganti
+              </div>
+          </div>
+  
+          <div className="flex flex-col gap-4 w-full px-8">
+            {progress.lastLessonId ? (
+              <div onClick={() => { SFX.playClick(); navigate(`/read/${progress.lastLessonId}/${progress.lastPageId}`); }} className="group relative w-full cursor-pointer">
+                <div className="absolute inset-0 bg-[#8a1c1c] rounded-xl translate-y-1 group-hover:translate-y-2 transition-transform"></div>
+                <div className="relative bg-[#1a1512] text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 group-hover:-translate-y-1 transition-transform border border-[#1a1512]">
+                  <span>Lanjutkan</span>
+                  <Play className="w-4 h-4 fill-current" />
+                </div>
+              </div>
+            ) : (
+              <div onClick={() => { SFX.playClick(); navigate('/contents'); }} className="group relative w-full cursor-pointer">
+                <div className="absolute inset-0 bg-[#dcd0b3] rounded-xl translate-y-1 group-hover:translate-y-2 transition-transform"></div>
+                <div className="relative bg-[#1a1512] text-white py-4 rounded-xl font-bold text-center group-hover:-translate-y-1 transition-transform border border-[#1a1512]">
+                  Mulai Belajar
+                </div>
+              </div>
+            )}
+            
+            <button onClick={() => { SFX.playClick(); navigate('/contents'); }} className="py-3 text-[#1a1512] text-sm font-bold text-center hover:bg-gray-50 rounded-xl transition-colors w-full">
+                Buka Peta Belajar
+            </button>
+          </div>
+          
+          <div className="mt-8 flex items-center gap-2 opacity-50">
+             <Layers className="w-4 h-4" />
+             <span className="text-xs font-bold">{safeStreak} Hari Beruntun</span>
+          </div>
+  
+          <div className="absolute -bottom-24 md:-bottom-32 text-center opacity-60">
+             <p className="font-serif italic text-sm text-[#1a1512]">by : abudzan</p>
           </div>
         </motion.div>
-
-        <h1 className="font-serif text-5xl text-[#1a1512] font-bold tracking-tight mb-2">Arabin</h1>
-        <div className="h-1 w-12 bg-[#8a1c1c] rounded-full mb-6"></div>
-        <p className="font-sans text-sm text-gray-500 uppercase tracking-[0.2em] mb-8">Belajar Logika Arab</p>
-        
-        {/* INTERACTIVE FEATURE: KALAM HIKMAH */}
-        <div 
-            onClick={nextQuote}
-            className="w-full bg-white border border-dashed border-gray-300 rounded-xl p-4 mb-10 cursor-pointer relative group hover:border-[#8a1c1c] transition-colors"
-        >
-            <Quote className="absolute -top-3 left-4 w-6 h-6 bg-[#fdfbf7] text-[#8a1c1c] px-1" />
-            <motion.div
-                key={quoteIdx}
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                className="text-center"
-            >
-                <p className="font-arabic text-xl font-bold mb-2 text-[#1a1512]">{quotes[quoteIdx].arab}</p>
-                <p className="font-serif text-xs italic text-gray-500">"{quotes[quoteIdx].arti}"</p>
-            </motion.div>
-            <div className="absolute -bottom-3 right-4 bg-[#fdfbf7] px-2 text-[10px] text-gray-400 flex items-center gap-1 group-hover:text-[#8a1c1c]">
-                <RefreshCw className="w-3 h-3" /> Tap untuk ganti
-            </div>
-        </div>
-
-        <div className="flex flex-col gap-4 w-full px-8">
-          {progress.lastLessonId ? (
-            <div onClick={() => { SFX.playClick(); navigate(`/read/${progress.lastLessonId}/${progress.lastPageId}`); }} className="group relative w-full cursor-pointer">
-              <div className="absolute inset-0 bg-[#8a1c1c] rounded-xl translate-y-1 group-hover:translate-y-2 transition-transform"></div>
-              <div className="relative bg-[#1a1512] text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 group-hover:-translate-y-1 transition-transform border border-[#1a1512]">
-                <span>Lanjutkan</span>
-                <Play className="w-4 h-4 fill-current" />
-              </div>
-            </div>
-          ) : (
-            <div onClick={() => { SFX.playClick(); navigate('/contents'); }} className="group relative w-full cursor-pointer">
-              <div className="absolute inset-0 bg-[#dcd0b3] rounded-xl translate-y-1 group-hover:translate-y-2 transition-transform"></div>
-              <div className="relative bg-[#1a1512] text-white py-4 rounded-xl font-bold text-center group-hover:-translate-y-1 transition-transform border border-[#1a1512]">
-                Mulai Belajar
-              </div>
-            </div>
-          )}
-          
-          <button onClick={() => { SFX.playClick(); navigate('/contents'); }} className="py-3 text-[#1a1512] text-sm font-bold text-center hover:bg-gray-50 rounded-xl transition-colors w-full">
-              Buka Peta Belajar
-          </button>
-        </div>
-        
-        <div className="mt-8 flex items-center gap-2 opacity-50">
-           <Layers className="w-4 h-4" />
-           <span className="text-xs font-bold">{safeStreak} Hari Beruntun</span>
-        </div>
-
-        <div className="absolute -bottom-24 md:-bottom-32 text-center opacity-60">
-           <p className="font-serif italic text-sm text-[#1a1512]">by : abudzan</p>
-        </div>
-      </motion.div>
-    </div>
-  );
-};
-
-const App = () => {
-  const [progress, setProgress] = useState(getProgress());
-  const path = useHashLocation();
-
-  useEffect(() => {
-      const initSound = () => {
-          SFX.playClick();
-          window.removeEventListener('click', initSound);
+      </div>
+    );
+  };
+  
+  const App = () => {
+    const [progress, setProgress] = useState(getProgress());
+    const path = useHashLocation();
+  
+    useEffect(() => {
+        const initSound = () => {
+            SFX.playClick();
+            window.removeEventListener('click', initSound);
+        };
+        window.addEventListener('click', initSound);
+        return () => window.removeEventListener('click', initSound);
+    }, []);
+  
+    useEffect(() => {
+      const handleStorage = () => setProgress(getProgress());
+      window.addEventListener('storage', handleStorage);
+      window.addEventListener('durus-progress-updated', handleStorage);
+      return () => {
+        window.removeEventListener('storage', handleStorage);
+        window.removeEventListener('durus-progress-updated', handleStorage);
       };
-      window.addEventListener('click', initSound);
-      return () => window.removeEventListener('click', initSound);
-  }, []);
-
-  useEffect(() => {
-    const handleStorage = () => setProgress(getProgress());
-    window.addEventListener('storage', handleStorage);
-    window.addEventListener('durus-progress-updated', handleStorage);
-    return () => {
-      window.removeEventListener('storage', handleStorage);
-      window.removeEventListener('durus-progress-updated', handleStorage);
-    };
-  }, []);
-
-  let content;
-  if (path === '/' || path === '') {
-      content = <CoverScreen navigate={navigate} />;
-  } else if (path === '/contents') {
-      content = (
-          <MainLayout currentPath={path}>
-            <LessonPath progress={progress} navigate={navigate} />
-          </MainLayout>
-      );
-  } else if (path === '/dictionary') {
-      content = (
-          <MainLayout currentPath={path}>
-            <DictionaryScreen />
-          </MainLayout>
-      );
-  } else if (path === '/profile') {
+    }, []);
+  
+    let content;
+    if (path === '/' || path === '') {
+        content = <CoverScreen navigate={navigate} />;
+    } else if (path === '/contents') {
         content = (
-          <MainLayout currentPath={path}>
-            <ProfileScreen />
-          </MainLayout>
-      );
-  } else if (path.startsWith('/read/')) {
-        const parts = path.split('/');
-        const lessonId = parts[2];
-        const pageId = parts[3];
-        content = <LessonSession lessonId={lessonId} pageId={pageId} navigate={navigate} />;
-  } else {
-        window.location.hash = '/';
-        content = null;
-  }
-
-  return <div>{content}</div>;
-};
-
-export default App;
+            <MainLayout currentPath={path}>
+              <LessonPath progress={progress} navigate={navigate} />
+            </MainLayout>
+        );
+    } else if (path === '/dictionary') {
+        content = (
+            <MainLayout currentPath={path}>
+              <DictionaryScreen />
+            </MainLayout>
+        );
+    } else if (path === '/profile') {
+          content = (
+            <MainLayout currentPath={path}>
+              <ProfileScreen />
+            </MainLayout>
+        );
+    } else if (path.startsWith('/read/')) {
+          const parts = path.split('/');
+          const lessonId = parts[2];
+          const pageId = parts[3];
+          content = <LessonSession lessonId={lessonId} pageId={pageId} navigate={navigate} />;
+    } else {
+          window.location.hash = '/';
+          content = null;
+    }
+  
+    return <div>{content}</div>;
+  };
+  
+  export default App;
