@@ -20,9 +20,9 @@ export default defineConfig(({ mode }) => {
     },
     define: {
       // Properly stringify the process.env object to include API_KEY.
-      // This avoids conflicts where 'process.env' is defined as {} effectively wiping out nested keys.
+      // logic: Check .env file first, if missing/empty, use the provided hardcoded key.
       'process.env': JSON.stringify({
-        API_KEY: env.API_KEY,
+        API_KEY: env.API_KEY || "AIzaSyAlY-3In4-2CjQ4Y5Hut_kQ-nhKeHlwZzc",
         NODE_ENV: mode
       })
     }
