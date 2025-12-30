@@ -22,13 +22,19 @@ export const sendMessageToGemini = async (
   context?: string
 ): Promise<string> => {
   
+  // 1. Safe Extraction of API Key
+  // We check explicitly to prevent the SDK from throwing a hard error
+  const apiKey = process.env.API_KEY;
+
+  if (!apiKey || apiKey === 'undefined' || apiKey === '') {
+      console.error("API_KEY is missing in environment variables.");
+      return "⚠️ Assalamu'alaikum. Mohon maaf, Ustadz belum memegang kunci akses (API Key tidak ditemukan). Mohon pastikan file .env sudah diatur dengan benar.";
+  }
+
   try {
-    // Initialize SDK directly. 
-    // If API_KEY is missing/invalid, the SDK constructor or generateContent call will throw an error,
-    // which will be caught by the catch block below.
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey: apiKey });
     
-    // 1. Build Content Array with Strict Alternation Rules
+    // 2. Build Content Array with Strict Alternation Rules
     // Gemini API throws 400 if:
     // - History starts with 'model'
     // - Roles do not alternate (User -> Model -> User)
@@ -71,7 +77,7 @@ export const sendMessageToGemini = async (
         }
     }
 
-    // 2. Final Safety: The conversation MUST end with a User message for the model to reply
+    // 3. Final Safety: The conversation MUST end with a User message for the model to reply
     if (contents.length === 0 || contents[contents.length - 1].role !== 'user') {
         // If we filtered everything out (e.g. only greetings), push the user prompt manually
         const finalPrompt = context 
@@ -84,7 +90,7 @@ export const sendMessageToGemini = async (
         });
     }
 
-    // 3. Call API
+    // 4. Call API
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview', 
       contents: contents, 
@@ -107,6 +113,7 @@ export const sendMessageToGemini = async (
         else if (error.message.includes('401') || error.message.includes('API_KEY')) errorMessage = "Izin akses ditolak (Invalid API Key).";
         else if (error.message.includes('429')) errorMessage = "Terlalu banyak permintaan (429). Tunggu sebentar.";
         else if (error.message.includes('404')) errorMessage = "Model AI sedang istirahat (404).";
+        else if (error.message.includes('Browser')) errorMessage = "API Key belum diatur dengan benar di .env";
         else errorMessage = `Error: ${error.message}`;
     }
 
