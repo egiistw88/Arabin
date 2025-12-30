@@ -17,7 +17,9 @@ export enum LogicId {
   QUESTION_HAMZAH = 'rule_question_hamzah', // Istifham (A...)
   ANSWER_PARTICLE = 'rule_answer', // Na'am / La
   DEFINITE_AL = 'rule_definite_al', // Al-Ma'rifah
-  POSSESSION = 'rule_mudhaf', // Idhafah
+  POSSESSION = 'rule_mudhaf', // The first part (Kitabu)
+  GENITIVE_POSSESSOR = 'rule_mudhaf_ilaih', // The second part (Muhammadin)
+  VOCATIVE = 'rule_vocative', // Ya ...
   ADJECTIVE = 'rule_naat', // Na'at Man'ut
 }
 

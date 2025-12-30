@@ -545,6 +545,162 @@ export const LESSON_DATA: Lesson[] = [
         ]
       }
     ]
+  },
+  {
+    id: 'lesson_05',
+    title: 'Bab 5: Sandaran & Kepemilikan',
+    description: 'Menghubungkan dua benda untuk menunjukkan kepemilikan (Idhafah), seperti "Buku Muhammad" atau "Rumah Allah".',
+    concepts: ['Idhafah (Sandaran)', 'Mudhaf (Milik)', 'Mudhaf Ilaih (Pemilik)', 'Nida (Panggilan)'],
+    introConcepts: [
+        {
+          title: "Konsep 1: Sandaran (Idhafah)",
+          description: "Saat kita ingin bilang 'Buku Muhammad', kita sandarkan kata 'Buku' ke 'Muhammad'. Rumusnya: Kata pertama (Buku) kehilangan Tanwin & Al. Kata kedua (Muhammad) jadi Kasrah.",
+          visualRule: {
+            before: "Kitabun + Muhammadun",
+            after: "Kitabu Muhammadin",
+            explanation: "Tanwin hilang karena bersandar. Pemilik (Muhammad) ditarik ke bawah (Kasrah)."
+          }
+        },
+        {
+            title: "Konsep 2: Panggilan (Nida)",
+            description: "Saat kita memanggil 'Wahai...' (Ya...), tanwin pada nama orang harus hilang.",
+            visualRule: {
+              before: "Muhammadun",
+              after: "Ya Muhammadu",
+              explanation: "Jangan panggil 'Ya Muhammadun'!"
+            }
+          }
+    ],
+    summary: {
+      title: "Khulashah: Hukum Idhafah",
+      keyPoints: [
+        "Mudhaf (Yang disandarkan): Tidak boleh ada AL, Tidak boleh ada Tanwin.",
+        "Mudhaf Ilaih (Pemilik): Wajib Majrur (Kasrah/i/in).",
+        "Panggilan 'Ya' membuat nama orang kehilangan tanwin (Ya Muhammadu).",
+        "Tempat (Zhorof) seperti 'Tahta' (Di bawah) berlakuk seperti Mudhaf."
+      ],
+      teacherTip: "Ingat saja 'Kitabu Muhammadin'. Kitabu ringan (tanpa beban tanwin/al), Muhammadin berat di bawah (kasrah)."
+    },
+    vocabulary: [
+      { arabic: 'اَلرَّسُوْلُ', latin: 'Ar-Rasulu', meaning: 'Utusan/Rasul' },
+      { arabic: 'اَلْكَعْبَةُ', latin: 'Al-Ka\'batu', meaning: 'Ka\'bah' },
+      { arabic: 'اَلاِسْمُ', latin: 'Al-Ismu', meaning: 'Nama' },
+      { arabic: 'اَلِابْنُ', latin: 'Al-Ibnu', meaning: 'Anak Laki-laki' },
+      { arabic: 'اَلْعَمُّ', latin: 'Al-Ammu', meaning: 'Paman (dari Ayah)' },
+      { arabic: 'اَلْخَالُ', latin: 'Al-Khaalu', meaning: 'Paman (dari Ibu)' },
+      { arabic: 'اَلْحَقِيْبَةُ', latin: 'Al-Haqiibatu', meaning: 'Tas' },
+      { arabic: 'اَلسَّيَّارَةُ', latin: 'As-Sayyaaratu', meaning: 'Mobil' },
+      { arabic: 'اَلشَّارِعُ', latin: 'Asy-Syari\'u', meaning: 'Jalan Raya' },
+      { arabic: 'مُغْلَقٌ', latin: 'Mughlaqun', meaning: 'Tertutup' },
+      { arabic: 'تَحْتَ', latin: 'Tahta', meaning: 'Di bawah' },
+      { arabic: 'هُنَاكَ', latin: 'Hunaaka', meaning: 'Di sana' },
+      { arabic: 'اَلْمُهَنْدِسُ', latin: 'Al-Muhandisu', meaning: 'Insinyur' },
+    ],
+    sentences: [
+        // STEP 1: Visualizing Idhafah (Concept)
+        {
+            id: '5_1',
+            arabicText: 'كِتَابُ مُحَمَّدٍ',
+            translation: 'Bukunya Muhammad (Buku milik Muhammad).',
+            tutorGuidance: "Lihat 'Kitabu'. Tanwinnya (un) hilang! Bukan 'Kitabun'. Kenapa? Karena dia bersandar ke Muhammad.",
+            segments: [
+                { 
+                    id: '5_1_1', text: 'كِتَابُ', type: WordType.NOUN, logicId: LogicId.POSSESSION, grammaticalRole: 'Mudhaf', 
+                    explanation: 'Buku (Milik). Tanwin hilang karena disandarkan.', 
+                    deepLogic: 'Mudhaf tidak boleh bertanwin dan tidak boleh pakai Al.' 
+                },
+                { 
+                    id: '5_1_2', text: 'مُحَمَّدٍ', type: WordType.NOUN, logicId: LogicId.GENITIVE_POSSESSOR, grammaticalRole: 'Mudhaf Ilaih', relatedToId: '5_1_1',
+                    explanation: 'Muhammad (Pemilik). Harakatnya Kasrah (in).', 
+                    deepLogic: 'Setiap Mudhaf Ilaih (Pemilik) pasti Majrur (Kasrah).' 
+                }
+            ]
+        },
+        // STEP 2: Questioning Possession (Is this...?)
+        {
+            id: '5_2',
+            arabicText: 'أَكِتَابُ مُحَمَّدٍ هَذَا؟',
+            translation: 'Apakah ini bukunya Muhammad?',
+            tutorGuidance: "Kita gabungkan Hamzah (Apakah) dengan Idhafah. Polanya: A + [Mudhaf] + [Mudhaf Ilaih] + [Isim Isyarah].",
+            segments: [
+                { id: '5_2_1', text: 'أَ', type: WordType.PARTICLE, logicId: LogicId.QUESTION_HAMZAH, grammaticalRole: 'Istifham', explanation: 'Apakah.' },
+                { id: '5_2_2', text: 'كِتَابُ', type: WordType.NOUN, logicId: LogicId.POSSESSION, grammaticalRole: 'Mudhaf', explanation: 'Buku.' },
+                { id: '5_2_3', text: 'مُحَمَّدٍ', type: WordType.NOUN, logicId: LogicId.GENITIVE_POSSESSOR, grammaticalRole: 'Mudhaf Ilaih', explanation: 'Muhammad (Pemilik - in).', relatedToId: '5_2_2' },
+                { id: '5_2_4', text: 'هَذَا', type: WordType.NOUN, logicId: LogicId.DEMONSTRATIVE, grammaticalRole: 'Mubtada Muakhar', explanation: 'Ini.' }
+            ]
+        },
+        // STEP 3: Answering with Location + Denial
+        {
+            id: '5_3',
+            arabicText: 'لَا، هَذَا كِتَابُ حَامِدٍ',
+            translation: 'Tidak, ini bukunya Hamid.',
+            tutorGuidance: "Jawab dengan 'La'. Lalu buat Idhafah baru: Kitabu Hamidin.",
+            segments: [
+                { id: '5_3_1', text: 'لَا', type: WordType.PARTICLE, logicId: LogicId.ANSWER_PARTICLE, grammaticalRole: 'Jawab', explanation: 'Tidak.' },
+                { id: '5_3_2', text: 'هَذَا', type: WordType.NOUN, logicId: LogicId.DEMONSTRATIVE, grammaticalRole: 'Mubtada', explanation: 'Ini.' },
+                { id: '5_3_3', text: 'كِتَابُ', type: WordType.NOUN, logicId: LogicId.POSSESSION, grammaticalRole: 'Mudhaf (Khobar)', explanation: 'Bukunya.' },
+                { id: '5_3_4', text: 'حَامِدٍ', type: WordType.NOUN, logicId: LogicId.GENITIVE_POSSESSOR, grammaticalRole: 'Mudhaf Ilaih', explanation: 'Hamid (in).', relatedToId: '5_3_3' }
+            ]
+        },
+        // STEP 4: Whose is this? (Qalamu Man)
+        {
+            id: '5_4',
+            arabicText: 'قَلَمُ مَنْ هَذَا؟',
+            translation: 'Pena siapa ini?',
+            tutorGuidance: "'Man' (Siapa) di sini jadi Pemilik (Mudhaf Ilaih), tapi karena dia kata tanya (Mabni), harakatnya tetap mati/sukun.",
+            segments: [
+                { id: '5_4_1', text: 'قَلَمُ', type: WordType.NOUN, logicId: LogicId.POSSESSION, grammaticalRole: 'Mudhaf', explanation: 'Pena.' },
+                { id: '5_4_2', text: 'مَنْ', type: WordType.PARTICLE, logicId: LogicId.GENITIVE_POSSESSOR, grammaticalRole: 'Mudhaf Ilaih', explanation: 'Siapa (Pemilik).', relatedToId: '5_4_1' },
+                { id: '5_4_3', text: 'هَذَا', type: WordType.NOUN, logicId: LogicId.DEMONSTRATIVE, grammaticalRole: 'Mubtada', explanation: 'Ini.' }
+            ]
+        },
+        // STEP 5: Definite Owner (Al)
+        {
+            id: '5_5',
+            arabicText: 'هَذَا قَلَمُ الْمُدَرِّسِ',
+            translation: 'Ini pena guru itu.',
+            tutorGuidance: "Jika pemiliknya pakai 'AL' (Al-Mudarrisi), maka tanwinnya hilang. Jadi 'i' saja, bukan 'in'.",
+            segments: [
+                { id: '5_5_1', text: 'هَذَا', type: WordType.NOUN, logicId: LogicId.DEMONSTRATIVE, grammaticalRole: 'Mubtada', explanation: 'Ini.' },
+                { id: '5_5_2', text: 'قَلَمُ', type: WordType.NOUN, logicId: LogicId.POSSESSION, grammaticalRole: 'Mudhaf', explanation: 'Pena.' },
+                { id: '5_5_3', text: 'الْمُدَرِّسِ', type: WordType.NOUN, logicId: LogicId.GENITIVE_POSSESSOR, grammaticalRole: 'Mudhaf Ilaih', explanation: 'Guru (Pemilik). Kasrah (i).', relatedToId: '5_5_2' }
+            ]
+        },
+        // STEP 6: Where is the bag? (Location)
+        {
+            id: '5_6',
+            arabicText: 'أَيْنَ حَقِيْبَةُ الْمُدَرِّسِ؟',
+            translation: 'Dimana tas guru itu?',
+            segments: [
+                { id: '5_6_1', text: 'أَيْنَ', type: WordType.PARTICLE, logicId: LogicId.QUESTION_TOOL, grammaticalRole: 'Istifham', explanation: 'Dimana.' },
+                { id: '5_6_2', text: 'حَقِيْبَةُ', type: WordType.NOUN, logicId: LogicId.POSSESSION, grammaticalRole: 'Mudhaf', explanation: 'Tas.' },
+                { id: '5_6_3', text: 'الْمُدَرِّسِ', type: WordType.NOUN, logicId: LogicId.GENITIVE_POSSESSOR, grammaticalRole: 'Mudhaf Ilaih', explanation: 'Guru (i).', relatedToId: '5_6_2' }
+            ]
+        },
+        // STEP 7: Under the table (Zhorof as Mudhaf)
+        {
+            id: '5_7',
+            arabicText: 'هِيَ تَحْتَ الْمَكْتَبِ',
+            translation: 'Dia (tas) ada di bawah meja.',
+            tutorGuidance: "Kata 'Tahta' (Di bawah) bekerja persis seperti Mudhaf. Kata setelahnya (Al-Maktabi) jadi Kasrah.",
+            segments: [
+                { id: '5_7_1', text: 'هِيَ', type: WordType.NOUN, logicId: LogicId.DEFAULT_NOUN, grammaticalRole: 'Mubtada', explanation: 'Dia (Tas/Pr).' },
+                { id: '5_7_2', text: 'تَحْتَ', type: WordType.NOUN, logicId: LogicId.POSSESSION, grammaticalRole: 'Zhorof Makan', explanation: 'Di bawah.', deepLogic: 'Zhorof berlaku seperti Mudhaf.' },
+                { id: '5_7_3', text: 'الْمَكْتَبِ', type: WordType.NOUN, logicId: LogicId.GENITIVE_POSSESSOR, grammaticalRole: 'Mudhaf Ilaih', explanation: 'Meja (i).', relatedToId: '5_7_2' }
+            ]
+        },
+        // STEP 8: Vocative (Ya)
+        {
+            id: '5_8',
+            arabicText: 'يَا يَاسِرُ',
+            translation: 'Wahai Yasir.',
+            tutorGuidance: "Saat dipanggil 'Ya', Yasirun kehilangan 'n'-nya. Menjadi 'Ya Yasiru'.",
+            segments: [
+                { id: '5_8_1', text: 'يَا', type: WordType.PARTICLE, logicId: LogicId.VOCATIVE, grammaticalRole: 'Huruf Nida', explanation: 'Wahai (Panggilan).' },
+                { id: '5_8_2', text: 'يَاسِرُ', type: WordType.NOUN, logicId: LogicId.DEFAULT_NOUN, grammaticalRole: 'Munada', explanation: 'Yasir (u).', deepLogic: 'Munada Mufrad Alam mabni ala Dhomm.' }
+            ]
+        }
+    ]
   }
 ];
 
