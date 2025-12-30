@@ -13,7 +13,7 @@ import { LessonPath } from './components/LessonPath';
 import { TutorDialog } from './components/TutorDialog'; 
 import { ConfirmationDialog } from './components/ConfirmationDialog';
 import { LessonSummary } from './components/LessonSummary';
-import { GeminiChat } from './components/GeminiChat'; // NEW
+import { GeminiChat } from './components/GeminiChat'; 
 import { Segment, VocabularyItem, UserProgress, SessionMode, Lesson } from './types';
 import { SFX } from './services/sfx';
 import { playArabicAudio } from './services/audio';
@@ -1023,7 +1023,12 @@ const App = () => {
     } else if (path === '/contents') {
         content = (
             <MainLayout currentPath={path}>
-              <LessonPath progress={progress} navigate={navigate} />
+              <LessonPath 
+                progress={progress} 
+                navigate={navigate} 
+                seenGuidanceIds={progress.seenGuidanceIds}
+                onMarkSeen={markGuidanceSeen}
+              />
             </MainLayout>
         );
     } else if (path === '/dictionary') {
@@ -1044,6 +1049,8 @@ const App = () => {
                apiKey={progress.geminiApiKey} 
                onSaveKey={updateApiKey} 
                navigate={navigate}
+               seenGuidanceIds={progress.seenGuidanceIds}
+               onMarkSeen={markGuidanceSeen}
             />
          );
     } else if (path.startsWith('/read/')) {

@@ -1,56 +1,77 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { CheckCircle2, Lock, Play, Star, BookOpen, Trophy, Flame, Medal, X, GraduationCap } from 'lucide-react';
+import { CheckCircle2, Lock, Play, Star, BookOpen, Trophy, Flame, Medal, X, GraduationCap, Map, Zap, HelpCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LESSON_DATA, calculateVocabMastery } from '../services/data';
 import { UserProgress } from '../types';
 import { SFX } from '../services/sfx';
+import { OnboardingGuide, GuideStep } from './OnboardingGuide';
 
 interface LessonPathProps {
   progress: UserProgress;
   navigate: (path: string) => void;
+  seenGuidanceIds?: string[];
+  onMarkSeen?: (id: string) => void;
 }
 
-export const LessonPath: React.FC<LessonPathProps> = ({ progress, navigate }) => {
+export const LessonPath: React.FC<LessonPathProps> = ({ progress, navigate, seenGuidanceIds = [], onMarkSeen }) => {
   const [showProfileCard, setShowProfileCard] = useState(false);
+  // Manual trigger state
+  const [forceShowGuide, setForceShowGuide] = useState(false);
   const activeNodeRef = useRef<HTMLDivElement>(null);
 
-  // --- INTELLIGENT PROGRESS LOGIC ---
-  
+  // GUIDANCE LOGIC
+  const GUIDE_ID = 'intro_dashboard';
+  // Show if never seen OR forced by user
+  const showGuide = (!seenGuidanceIds.includes(GUIDE_ID)) || forceShowGuide;
+
+  const handleGuideComplete = (id: string) => {
+      setForceShowGuide(false);
+      if (onMarkSeen) onMarkSeen(id);
+  };
+
+  const guideSteps: GuideStep[] = [
+    {
+        title: "Selamat Datang, Penuntut Ilmu",
+        description: "Ini adalah Peta Belajarmu. Di sini kita akan mempelajari Logika Bahasa Arab bukan dengan menghafal rumus, tapi memahami pola.",
+        icon: Map
+    },
+    {
+        title: "Sistem Level & XP",
+        description: "Setiap bab yang selesai akan memberimu XP. Kumpulkan XP untuk naik level dari 'Mubtadi' (Pemula) menjadi 'Alim' (Ahli).",
+        icon: Trophy
+    },
+    {
+        title: "Jaga Istiqomah (Streak)",
+        description: "Belajar sedikit tapi rutin lebih baik daripada banyak tapi jarang. Api 'Streak' akan menyala jika kamu belajar setiap hari.",
+        icon: Flame
+    }
+  ];
+
   // Find the first lesson that is NOT in the completed list
   let activeLessonIndex = LESSON_DATA.findIndex((l) => !progress.completedLessons.includes(l.id));
-  
-  // If all lessons are completed, set active index to the last one
   const isCourseComplete = activeLessonIndex === -1 && progress.completedLessons.length > 0;
-  
   if (isCourseComplete) {
     activeLessonIndex = LESSON_DATA.length - 1; 
   }
-  
-  // Default to 0 if something goes wrong or no progress
   if (activeLessonIndex === -1) activeLessonIndex = 0;
-
   const activeLesson = LESSON_DATA[activeLessonIndex];
   
-  // Auto-scroll to active lesson on mount
   useEffect(() => {
     if (activeNodeRef.current) {
         setTimeout(() => {
             activeNodeRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }, 500); // Slight delay to allow animations to settle
+        }, 500); 
     }
-  }, []); // Run once on mount
+  }, []); 
 
-  // USE NEW PRECISE CALCULATION
   const vocabMasteredCount = calculateVocabMastery(progress);
-
   const stats = {
     vocabMastered: vocabMasteredCount, 
     currentStreak: progress.currentStreak, 
     totalXp: progress.totalXp || 0
   };
 
-  // Level Logic
   const level = Math.floor(stats.totalXp / 500) + 1;
   const currentLevelXp = stats.totalXp - ((level - 1) * 500);
   const progressPercent = Math.min((currentLevelXp / 500) * 100, 100);
@@ -64,12 +85,32 @@ export const LessonPath: React.FC<LessonPathProps> = ({ progress, navigate }) =>
   return (
     <div className="w-full min-h-screen bg-[#f8f9fa] pb-32">
       
+      {/* ONBOARDING */}
+      {onMarkSeen && (
+        <OnboardingGuide 
+            id={GUIDE_ID}
+            isOpen={showGuide}
+            steps={guideSteps}
+            onComplete={handleGuideComplete}
+        />
+      )}
+
       {/* 1. HEADER */}
       <div className="bg-white px-6 pt-8 pb-6 border-b border-gray-100 rounded-b-3xl shadow-sm z-10 relative">
         <div className="max-w-md mx-auto">
           <div className="flex justify-between items-center mb-6">
             <div>
-              <p className="text-xs font-sans font-bold text-gray-400 uppercase tracking-widest mb-1">Ahlan wa Sahlan,</p>
+              <p className="text-xs font-sans font-bold text-gray-400 uppercase tracking-widest mb-1 flex items-center gap-1">
+                Ahlan wa Sahlan,
+                {/* Manual Trigger Button */}
+                <button 
+                    onClick={() => { SFX.playPop(); setForceShowGuide(true); }}
+                    className="p-1 bg-gray-100 rounded-full hover:bg-[#8a1c1c] hover:text-white transition-colors"
+                    title="Bantuan Aplikasi"
+                >
+                    <HelpCircle className="w-3 h-3" />
+                </button>
+              </p>
               <h1 className="font-serif text-2xl font-bold text-[#1a1512]">{progress.userName || 'Penuntut Ilmu'}</h1>
             </div>
             <motion.button 
@@ -128,7 +169,7 @@ export const LessonPath: React.FC<LessonPathProps> = ({ progress, navigate }) =>
                 {/* Decoration */}
                 <div className="absolute top-0 left-0 w-full h-24 bg-[#1a1512] z-0"></div>
                 
-                {/* Close Button - FIX: Changed z-index from 10 to 50 to stay above content */}
+                {/* Close Button */}
                 <div className="absolute top-4 right-4 z-50">
                     <button 
                         onClick={() => { SFX.playClick(); setShowProfileCard(false); }} 

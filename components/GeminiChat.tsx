@@ -1,24 +1,56 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Key, AlertTriangle, CheckCircle2, User, Sparkles, ChevronLeft, Loader2 } from 'lucide-react';
+import { Send, Key, AlertTriangle, CheckCircle2, User, Sparkles, ChevronLeft, Loader2, Ticket, Lock, ShieldCheck, HelpCircle } from 'lucide-react';
 import { validateApiKey, sendMessageToGemini } from '../services/gemini';
 import { ChatMessage } from '../types';
 import { SFX } from '../services/sfx';
+import { OnboardingGuide, GuideStep } from './OnboardingGuide';
 
 interface GeminiChatProps {
   apiKey?: string;
   onSaveKey: (key: string) => void;
   navigate: (path: string) => void;
+  seenGuidanceIds?: string[];
+  onMarkSeen?: (id: string) => void;
 }
 
-export const GeminiChat: React.FC<GeminiChatProps> = ({ apiKey, onSaveKey, navigate }) => {
+export const GeminiChat: React.FC<GeminiChatProps> = ({ apiKey, onSaveKey, navigate, seenGuidanceIds = [], onMarkSeen }) => {
   const [inputKey, setInputKey] = useState('');
   const [isValidating, setIsValidating] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMsg, setInputMsg] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [forceShowGuide, setForceShowGuide] = useState(false); // Manual trigger
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // GUIDANCE LOGIC
+  const GUIDE_ID = 'intro_api_key';
+  // Show if never seen OR forced
+  const showGuide = (!apiKey && !seenGuidanceIds.includes(GUIDE_ID)) || forceShowGuide;
+
+  const handleGuideComplete = (id: string) => {
+      setForceShowGuide(false);
+      if (onMarkSeen) onMarkSeen(id);
+  };
+
+  const guideSteps: GuideStep[] = [
+    {
+        title: "Koneksi ke Otak Cerdas",
+        description: "Fitur ini menghubungkanmu langsung dengan Kecerdasan Buatan (AI) Google Gemini. Kamu bisa bertanya apa saja tentang Bahasa Arab layaknya chat dengan guru privat.",
+        icon: Sparkles
+    },
+    {
+        title: "Apa itu API Key?",
+        description: "Bayangkan API Key sebagai 'Tiket Masuk' digital. Untuk menggunakan otak Google, aplikasi ini butuh tiket tersebut. Kabar baiknya: Tiket ini 100% GRATIS.",
+        icon: Ticket
+    },
+    {
+        title: "Cara Mendapatkannya",
+        description: "1. Klik link 'Dapatkan di Google AI Studio' di bawah.\n2. Login akun Google.\n3. Klik 'Create API Key' dan salin kodenya ke sini.",
+        icon: Key
+    }
+  ];
 
   useEffect(() => {
     scrollToBottom();
@@ -39,7 +71,6 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({ apiKey, onSaveKey, navig
     if (isValid) {
       SFX.playSuccess();
       onSaveKey(inputKey);
-      // Add welcome message - WARM PERSONA
       setMessages([{
         role: 'model',
         text: "Assalamu'alaikum warahmatullah. Mari duduk sejenak. Bagian mana dari pelajaran tadi yang masih mengganjal di hati? Jangan sungkan bertanya, Ustadz di sini untuk menemani belajarmu.",
@@ -58,7 +89,6 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({ apiKey, onSaveKey, navig
     setInputMsg('');
     SFX.playClick();
 
-    // Add User Message
     const newMessages: ChatMessage[] = [
       ...messages,
       { role: 'user', text: userText, timestamp: Date.now() }
@@ -66,8 +96,6 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({ apiKey, onSaveKey, navig
     setMessages(newMessages);
     setIsTyping(true);
 
-    // Call Gemini
-    // Create simple history for context (last 5 pairs)
     const historyPayload = newMessages.slice(-10).map(m => ({
         role: m.role as 'user' | 'model',
         text: m.text
@@ -88,22 +116,33 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({ apiKey, onSaveKey, navig
   if (!apiKey) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[80vh] p-6 text-center">
+        
+        {/* THE ONBOARDING GUIDE */}
+        {onMarkSeen && (
+            <OnboardingGuide 
+                id={GUIDE_ID}
+                isOpen={showGuide}
+                steps={guideSteps}
+                onComplete={handleGuideComplete}
+            />
+        )}
+
         <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6 relative">
           <Key className="w-8 h-8 text-gray-400" />
           <div className="absolute -top-1 -right-1 bg-amber-500 text-white p-1 rounded-full border-2 border-white">
-            <AlertTriangle className="w-3 h-3" />
+            <Lock className="w-3 h-3" />
           </div>
         </div>
         
         <h2 className="font-serif font-bold text-2xl text-[#1a1512] mb-2">Aktivasi Guru AI</h2>
         <p className="text-gray-500 text-sm mb-8 leading-relaxed max-w-xs">
-          Fitur ini menggunakan kecerdasan buatan Gemini. Anda perlu memasukkan API Key pribadi Anda (Gratis).
+          Masukkan kunci rahasia (API Key) Anda untuk mulai bertanya.
         </p>
 
         <div className="w-full max-w-sm space-y-4">
           <input 
             type="password" 
-            placeholder="Tempel API Key Gemini di sini..."
+            placeholder="Tempel API Key di sini..."
             className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-[#8a1c1c] focus:outline-none transition-colors"
             value={inputKey}
             onChange={(e) => setInputKey(e.target.value)}
@@ -116,13 +155,24 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({ apiKey, onSaveKey, navig
               ${isValidating || !inputKey ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-[#1a1512] text-white hover:bg-black'}
             `}
           >
-             {isValidating ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
+             {isValidating ? <Loader2 className="w-5 h-5 animate-spin" /> : <ShieldCheck className="w-5 h-5" />}
              {isValidating ? 'Memeriksa...' : 'Simpan & Hubungkan'}
           </button>
 
-          <p className="text-xs text-gray-400 mt-4">
-            Belum punya key? <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-[#8a1c1c] font-bold underline">Dapatkan di Google AI Studio</a>
+          <p className="text-xs text-gray-400 mt-4 bg-gray-50 p-3 rounded-lg border border-gray-100">
+            Belum punya key? <br/>
+            <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-[#8a1c1c] font-bold underline block mt-1">
+                Dapatkan GRATIS di Google AI Studio
+            </a>
           </p>
+
+          <button 
+             onClick={() => setForceShowGuide(true)}
+             className="flex items-center justify-center gap-1 mx-auto text-xs text-gray-400 hover:text-[#8a1c1c] mt-2 transition-colors"
+          >
+             <HelpCircle className="w-3 h-3" />
+             <span>Saya bingung, tolong jelaskan lagi</span>
+          </button>
         </div>
         
         <button onClick={() => navigate('/contents')} className="mt-8 text-sm font-bold text-gray-400 hover:text-[#1a1512]">
@@ -134,9 +184,7 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({ apiKey, onSaveKey, navig
 
   // --- VIEW: CHAT INTERFACE ---
   return (
-    <div className="flex flex-col h-screen bg-[#f8f9fa] safe-bottom pb-20"> {/* Add padding for bottom nav if needed, though this is full screen */}
-       
-       {/* Chat Header */}
+    <div className="flex flex-col h-screen bg-[#f8f9fa] safe-bottom pb-20">
        <div className="bg-white px-4 py-4 border-b border-gray-100 flex items-center gap-3 shadow-sm sticky top-0 z-10">
           <button onClick={() => navigate('/contents')} className="p-2 -ml-2 text-gray-400 hover:text-[#1a1512]">
              <ChevronLeft className="w-6 h-6" />
@@ -153,7 +201,6 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({ apiKey, onSaveKey, navig
           </div>
        </div>
 
-       {/* Chat Area */}
        <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {messages.length === 0 && (
              <div className="text-center py-10 opacity-50">
@@ -171,12 +218,10 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({ apiKey, onSaveKey, navig
                    animate={{ opacity: 1, y: 0 }}
                    className={`flex gap-3 ${isModel ? 'flex-row' : 'flex-row-reverse'}`}
                 >
-                   {/* Avatar */}
                    <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center mt-1 ${isModel ? 'bg-[#1a1512] text-white' : 'bg-gray-200 text-gray-500'}`}>
                       {isModel ? <span className="font-arabic mt-1">ع</span> : <User className="w-4 h-4" />}
                    </div>
 
-                   {/* Bubble */}
                    <div className={`
                       max-w-[85%] p-4 rounded-2xl text-sm leading-relaxed shadow-sm
                       ${isModel 
@@ -185,7 +230,6 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({ apiKey, onSaveKey, navig
                       }
                    `}>
                       <div className="markdown-body" dangerouslySetInnerHTML={{ 
-                          // Simple formatting: bold, italics, line breaks
                           __html: msg.text
                               .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
                               .replace(/\*(.*?)\*/g, '<i>$1</i>')
@@ -212,7 +256,6 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({ apiKey, onSaveKey, navig
           <div ref={messagesEndRef} />
        </div>
 
-       {/* Input Area */}
        <div className="bg-white p-4 border-t border-gray-100 sticky bottom-0">
           <div className="flex gap-2 max-w-lg mx-auto">
              <input 
