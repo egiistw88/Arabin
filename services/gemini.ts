@@ -25,29 +25,42 @@ export const sendMessageToGemini = async (
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     
     // 1. Prepare History
-    // We expect 'history' to contain the full conversation including the latest user message.
-    // We remove the last message (raw user text) so we can replace it with the context-enriched version.
-    const previousTurns = history.slice(0, -1).map(msg => ({
+    // We remove the last message because we will reconstruct it with context below.
+    let rawPreviousTurns = history.slice(0, -1).map(msg => ({
       role: msg.role,
       parts: [{ text: msg.text }]
     }));
 
+    // CRITICAL FIX: Gemini API requires the conversation to START with a 'user' message.
+    // If our history starts with a 'model' greeting (e.g. "Assalamu'alaikum"), we must skip it 
+    // for the API payload, otherwise it throws a 400 error.
+    
+    // Find the index of the first user message
+    const firstUserIndex = rawPreviousTurns.findIndex(t => t.role === 'user');
+    
+    // If we found a user message, slice from there. 
+    // If NO user message is found in history (e.g. only a greeting exists), 
+    // validPreviousTurns becomes empty [], which is perfectly valid as the START of a chat.
+    const validPreviousTurns = firstUserIndex >= 0 ? rawPreviousTurns.slice(firstUserIndex) : [];
+
     // 2. Construct the Final Turn with Context
-    // This ensures the context is attached to the most recent prompt, maximizing adherence.
     const finalUserText = context 
       ? `[KONTEKS APLIKASI SAAT INI]\n${context}\n\n[PERTANYAAN PENGGUNA]\n${lastUserMessage}` 
       : lastUserMessage;
 
     // Add the enriched last message
-    previousTurns.push({
-      role: 'user',
-      parts: [{ text: finalUserText }]
-    });
+    const finalContent = [
+      ...validPreviousTurns,
+      {
+        role: 'user',
+        parts: [{ text: finalUserText }]
+      }
+    ];
 
-    // 3. Generate Response with Full Context
+    // 3. Generate Response
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: previousTurns, 
+      contents: finalContent, 
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
         temperature: 0.7, 
@@ -58,6 +71,7 @@ export const sendMessageToGemini = async (
     
   } catch (error) {
     console.error("Gemini Error:", error);
-    return "Mohon maaf, koneksi batin kita terputus sejenak (Error Jaringan). Coba periksa koneksi internetmu ya.";
+    // More descriptive error for debugging (visible in console, friendly in UI)
+    return "Mohon maaf, koneksi batin kita terputus sejenak. Pastikan internet lancar, atau coba tanyakan hal yang lebih sederhana.";
   }
 };
