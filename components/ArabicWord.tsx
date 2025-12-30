@@ -1,8 +1,10 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion as m } from 'framer-motion';
 import { Segment } from '../types';
 import { TYPE_COLORS, BOUNCE } from '../constants';
 import { SFX } from '../services/sfx';
+
+const motion = m as any;
 
 interface ArabicWordProps {
   segment: Segment;

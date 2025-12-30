@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion as m } from 'framer-motion';
 import { Check, X, HelpCircle, Trophy } from 'lucide-react';
 import { Sentence, WordType } from '../types';
 import { SFX } from '../services/sfx';
+
+const motion = m as any;
 
 interface QuizProps {
   sentence: Sentence;

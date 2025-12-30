@@ -1,8 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion as m, AnimatePresence } from 'framer-motion';
 import { ChevronRight, CheckCircle2, X, HelpCircle, Sparkles } from 'lucide-react';
 import { SFX } from '../services/sfx';
+
+const motion = m as any;
 
 export interface GuideStep {
   title: string;

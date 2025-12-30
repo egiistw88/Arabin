@@ -1,7 +1,9 @@
 import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion as m, AnimatePresence } from 'framer-motion';
 import { Tag, Sparkles, AlertCircle, ArrowDown } from 'lucide-react';
 import { Segment, WordType, LogicId } from '../types';
+
+const motion = m as any;
 
 interface TutorPersonaProps {
   selectedSegment: Segment | null;

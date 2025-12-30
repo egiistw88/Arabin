@@ -1,7 +1,9 @@
 import React from 'react';
 import { Map, Book, User } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion as m } from 'framer-motion';
 import { SFX } from '../services/sfx';
+
+const motion = m as any;
 
 interface BottomNavProps {
   currentPath?: string;

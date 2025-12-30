@@ -1,7 +1,9 @@
 import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion as m, AnimatePresence } from 'framer-motion';
 import { Check, GraduationCap } from 'lucide-react';
 import { SFX } from '../services/sfx';
+
+const motion = m as any;
 
 interface TutorDialogProps {
   isVisible: boolean;

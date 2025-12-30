@@ -1,7 +1,9 @@
 import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion as m, AnimatePresence } from 'framer-motion';
 import { X, Book } from 'lucide-react';
 import { VocabularyItem } from '../types';
+
+const motion = m as any;
 
 interface VocabSheetProps {
   isOpen: boolean;

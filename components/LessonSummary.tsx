@@ -1,9 +1,11 @@
 
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion as m } from 'framer-motion';
 import { CheckCircle2, GraduationCap, Lightbulb, ChevronRight, HelpCircle } from 'lucide-react';
 import { LessonSummary as SummaryType } from '../types';
 import { SFX } from '../services/sfx';
+
+const motion = m as any;
 
 interface LessonSummaryProps {
   summary: SummaryType;

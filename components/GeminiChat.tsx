@@ -1,10 +1,12 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion as m } from 'framer-motion';
 import { Send, User, Sparkles, ChevronLeft } from 'lucide-react';
 import { sendMessageToGemini } from '../services/gemini';
 import { ChatMessage } from '../types';
 import { SFX } from '../services/sfx';
+
+const motion = m as any;
 
 interface GeminiChatProps {
   navigate: (path: string) => void;

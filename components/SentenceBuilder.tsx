@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion as m, AnimatePresence } from 'framer-motion';
 import { RefreshCcw, Check, AlertCircle } from 'lucide-react';
 import { Sentence, Segment } from '../types';
 import { SFX } from '../services/sfx';
+
+const motion = m as any;
 
 interface SentenceBuilderProps {
   sentence: Sentence;

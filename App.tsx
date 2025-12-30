@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { ChevronRight, ChevronLeft, BookOpen, X, RotateCcw, Search, Sparkles, Play, Layers, Home, RefreshCw, Quote, GraduationCap, Eye, EyeOff, Volume2, Filter, Edit2, Settings, Trophy, Calendar, Flame, Star, LogOut, Github, Info, Medal, Music, MessageCircle, Key } from 'lucide-react';
-import { AnimatePresence, motion } from 'framer-motion'; 
+import { AnimatePresence, motion as m } from 'framer-motion'; 
 import { LESSON_DATA, calculateVocabMastery } from './services/data';
 import { ArabicWord } from './components/ArabicWord';
 import { TutorPersona } from './components/TutorPersona';
@@ -16,7 +15,9 @@ import { LessonSummary } from './components/LessonSummary';
 import { GeminiChat } from './components/GeminiChat'; 
 import { Segment, VocabularyItem, UserProgress, SessionMode, Lesson } from './types';
 import { SFX } from './services/sfx';
-import { playArabicAudio } from './services/audio';
+import { audioService } from './services/audio'; // Import the new Service instance
+
+const motion = m as any;
 
 // --- STORAGE HELPER ---
 const STORAGE_KEY = 'durus_progress_v2';
@@ -167,6 +168,8 @@ const MainLayout = ({ children, currentPath }: React.PropsWithChildren<{ current
 );
 
 // --- SCREENS ---
+// DictionaryScreen, ProfileScreen, LessonSession, CoverScreen definitions...
+
 const DictionaryScreen = () => {
   const [search, setSearch] = useState('');
   const [isMemorizeMode, setIsMemorizeMode] = useState(false);
@@ -199,7 +202,7 @@ const DictionaryScreen = () => {
   const playWord = (e: React.MouseEvent, word: string) => {
       e.stopPropagation();
       setPlayingWord(word);
-      playArabicAudio(word, undefined, () => setPlayingWord(null));
+      audioService.play(word, undefined, () => setPlayingWord(null));
   };
 
   return (
@@ -972,6 +975,8 @@ const App = () => {
     useEffect(() => {
         const initSound = () => {
             SFX.playClick();
+            // UNLOCK IOS/ANDROID AUDIO CONTEXT ON FIRST CLICK
+            audioService.unlockAudioContext(); 
             window.removeEventListener('click', initSound);
         };
         window.addEventListener('click', initSound);

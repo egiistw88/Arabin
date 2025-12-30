@@ -1,11 +1,13 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { CheckCircle2, Lock, Play, Star, BookOpen, Trophy, Flame, Medal, X, GraduationCap, Map, Zap, HelpCircle } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion as m, AnimatePresence } from 'framer-motion';
 import { LESSON_DATA, calculateVocabMastery } from '../services/data';
 import { UserProgress } from '../types';
 import { SFX } from '../services/sfx';
 import { OnboardingGuide, GuideStep } from './OnboardingGuide';
+
+const motion = m as any;
 
 interface LessonPathProps {
   progress: UserProgress;
