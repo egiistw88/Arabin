@@ -18,21 +18,36 @@ Struktur Jawaban:
 
 export const sendMessageToGemini = async (
   history: {role: 'user'|'model', text: string}[], 
-  newMessage: string,
-  context?: string // NEW: Context Parameter
+  lastUserMessage: string,
+  context?: string
 ): Promise<string> => {
   try {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     
-    // If context is provided, we prepend it to the user's message as a hidden instruction
-    // This gives the model immediate awareness without cluttering the chat history visually
-    const finalPrompt = context 
-      ? `[KONTEKS SISTEM - PENTING]\n${context}\n\n[PERTANYAAN PENGGUNA]\n${newMessage}` 
-      : newMessage;
+    // 1. Prepare History
+    // We expect 'history' to contain the full conversation including the latest user message.
+    // We remove the last message (raw user text) so we can replace it with the context-enriched version.
+    const previousTurns = history.slice(0, -1).map(msg => ({
+      role: msg.role,
+      parts: [{ text: msg.text }]
+    }));
 
+    // 2. Construct the Final Turn with Context
+    // This ensures the context is attached to the most recent prompt, maximizing adherence.
+    const finalUserText = context 
+      ? `[KONTEKS APLIKASI SAAT INI]\n${context}\n\n[PERTANYAAN PENGGUNA]\n${lastUserMessage}` 
+      : lastUserMessage;
+
+    // Add the enriched last message
+    previousTurns.push({
+      role: 'user',
+      parts: [{ text: finalUserText }]
+    });
+
+    // 3. Generate Response with Full Context
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: finalPrompt, 
+      contents: previousTurns, 
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
         temperature: 0.7, 
