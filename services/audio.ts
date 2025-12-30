@@ -1,100 +1,157 @@
+
 /**
- * Utility untuk menangani Text-to-Speech Bahasa Arab.
- * Menggunakan Web Speech API native browser sebagai fallback cerdas.
- * Menerapkan Singleton Pattern untuk mencegah suara tumpang tindih.
+ * Advanced Text-to-Speech Handler for Arabic
+ * Fixes issues with:
+ * 1. Garbage Collection killing audio prematurely
+ * 2. Race conditions (overlapping audio)
+ * 3. Mobile browser delays/blocks
  */
 
-// Global variable to track the currently playing audio instance
-let currentAudio: HTMLAudioElement | null = null;
+// GLOBAL STATE TRACKERS
+let currentAudioObj: HTMLAudioElement | null = null;
+let activeUtterance: SpeechSynthesisUtterance | null = null; // Prevent GC removal
+let voicesLoaded = false;
+let arabicVoice: SpeechSynthesisVoice | null = null;
+
+// 1. VOICE PRE-LOADING (CRITICAL FOR ANDROID/CHROME)
+const loadVoices = () => {
+    if (!('speechSynthesis' in window)) return;
+    
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length > 0) {
+        // Prioritas: Google Arabic -> Microsoft Arabic -> Generic Arabic -> Lang ID
+        arabicVoice = voices.find(v => v.lang === 'ar-SA' && v.name.includes('Google')) ||
+                      voices.find(v => v.lang.includes('ar-SA')) ||
+                      voices.find(v => v.lang.includes('ar')) ||
+                      null;
+        voicesLoaded = true;
+    }
+};
+
+// Initialize voices immediately
+if ('speechSynthesis' in window) {
+    loadVoices();
+    // Chrome needs this event to load voices async
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+}
 
 export const playArabicAudio = (text: string, audioUrl?: string, onEnd?: () => void): () => void => {
-  // 1. Cleanup: Hentikan audio atau TTS yang sedang berjalan
-  if (currentAudio) {
-    currentAudio.pause();
-    currentAudio = null;
+  // A. HARD RESET (Stop all previous sounds immediately)
+  if (currentAudioObj) {
+    currentAudioObj.pause();
+    currentAudioObj.currentTime = 0;
+    currentAudioObj = null;
   }
-  window.speechSynthesis.cancel();
+  
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel(); // Clears queue
+  }
 
-  // 2. Coba Audio URL jika valid (bukan dummy example.com)
-  if (audioUrl && !audioUrl.includes('example.com') && !audioUrl.includes('placeholder')) {
-    const audio = new Audio(audioUrl);
-    currentAudio = audio; // Track this instance
-    
-    const handleEnd = () => {
-      currentAudio = null;
+  // Helper to handle completion safely
+  const handleEnd = () => {
+      activeUtterance = null; // Release memory
       if (onEnd) onEnd();
-    };
+  };
 
-    const handleError = () => {
-        // Fallback ke TTS jika file audio gagal load
-        console.warn("Audio file unreachable, falling back to Native TTS");
-        currentAudio = null;
-        speakNative(text, onEnd);
-    };
+  // B. STRATEGY 1: PLAY AUDIO FILE (Only if URL is valid & real)
+  // Check if URL is valid and NOT a placeholder/example
+  const isValidUrl = audioUrl && 
+                     audioUrl.length > 5 && 
+                     !audioUrl.includes('example.com') && 
+                     !audioUrl.includes('placeholder');
 
-    audio.addEventListener('ended', handleEnd);
-    audio.addEventListener('error', handleError);
+  if (isValidUrl) {
+    const audio = new Audio(audioUrl);
+    currentAudioObj = audio;
     
-    // Play with promise handling
+    // Safety check: If audio fails to load quickly, fallback to TTS
+    const loadTimeout = setTimeout(() => {
+        if (currentAudioObj === audio && audio.readyState === 0) {
+            console.warn("Audio load timeout, switching to TTS");
+            audio.pause();
+            speakNative(text, handleEnd);
+        }
+    }, 2000); 
+
+    audio.onended = () => {
+        clearTimeout(loadTimeout);
+        handleEnd();
+    };
+
+    audio.onerror = () => {
+        clearTimeout(loadTimeout);
+        console.warn("Audio file error, falling back to TTS");
+        speakNative(text, handleEnd);
+    };
+    
+    // Attempt play
     audio.play().catch(e => {
-        console.warn("Autoplay blocked or failed, falling back to TTS", e);
-        // Jika autoplay diblokir browser atau error lain, fallback ke TTS
-        currentAudio = null;
-        speakNative(text, onEnd);
+        clearTimeout(loadTimeout);
+        console.warn("Autoplay blocked/failed, falling back to TTS", e);
+        speakNative(text, handleEnd);
     });
 
-    // Return cleanup function to stop audio explicitly
     return () => {
-        if (currentAudio === audio) {
-            audio.pause();
-            currentAudio = null;
-        }
-        audio.removeEventListener('ended', handleEnd);
-        audio.removeEventListener('error', handleError);
+        clearTimeout(loadTimeout);
+        audio.pause();
+        if (currentAudioObj === audio) currentAudioObj = null;
     };
   } 
   
-  // 3. Jika tidak ada file audio, langsung gunakan Native TTS
-  return speakNative(text, onEnd);
+  // C. STRATEGY 2: NATIVE TTS (Immediate Fallback)
+  return speakNative(text, handleEnd);
 };
 
-// Helper untuk Native TTS
-const speakNative = (text: string, onEnd?: () => void): () => void => {
+// Internal TTS Logic
+const speakNative = (text: string, onEnd: () => void): () => void => {
     if (!('speechSynthesis' in window)) {
-        console.error("Browser tidak mendukung Speech Synthesis");
-        if (onEnd) onEnd();
+        console.error("Browser does not support TTS");
+        onEnd();
         return () => {};
     }
 
-    // Cancel antrian suara sebelumnya (Double check)
+    // Double ensure queue is clear
     window.speechSynthesis.cancel();
 
+    // Create new utterance
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'ar-SA'; // Kode bahasa Arab Saudi
-    utterance.rate = 0.85; // Sedikit diperlambat agar cocok untuk pembelajar
-    utterance.pitch = 1;
-
-    // Upaya mendapatkan suara terbaik yang tersedia di perangkat user
-    // Chrome memuat voices secara async, jadi kita coba ambil langsung
-    const voices = window.speechSynthesis.getVoices();
-    // Prioritaskan suara spesifik jika ada (misal Google Arabic atau Maged Apple)
-    const arabicVoice = voices.find(v => v.lang.includes('ar'));
     
+    // Keep reference in global scope to prevent Garbage Collection (Fixes audio cutting off)
+    activeUtterance = utterance;
+
+    // Config
+    utterance.lang = 'ar-SA';
+    utterance.rate = 0.8; // Slower for learning
+    utterance.pitch = 1.0;
+    utterance.volume = 1.0;
+
+    // Apply pre-loaded voice if available
+    if (!voicesLoaded) loadVoices(); // Try loading again just in case
     if (arabicVoice) {
         utterance.voice = arabicVoice;
     }
 
+    // Events
     utterance.onend = () => {
-        if (onEnd) onEnd();
+        onEnd();
+        activeUtterance = null; // Clean ref
     };
 
     utterance.onerror = (e) => {
-        console.error("TTS Error", e);
-        if (onEnd) onEnd();
+        // 'canceled' or 'interrupted' errors are normal when user clicks fast
+        if (e.error !== 'canceled' && e.error !== 'interrupted') {
+             console.error("TTS Error:", e);
+        }
+        onEnd();
+        activeUtterance = null;
     };
 
+    // SPEAK
     window.speechSynthesis.speak(utterance);
 
-    // Return cleanup function
-    return () => window.speechSynthesis.cancel();
+    // Return Cleanup Function
+    return () => {
+        window.speechSynthesis.cancel();
+        activeUtterance = null;
+    };
 }
