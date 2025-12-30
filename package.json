@@ -1,7 +1,8 @@
+
 {
   "name": "durus-ai",
   "private": true,
-  "version": "1.0.4",
+  "version": "1.0.5",
   "type": "module",
   "engines": {
     "node": ">=18.0.0"
@@ -17,7 +18,6 @@
     "react-router-dom": "^6.23.0",
     "framer-motion": "^11.1.7",
     "lucide-react": "^0.468.0",
-    "recharts": "^2.12.7",
     "@google/genai": "*"
   },
   "devDependencies": {
