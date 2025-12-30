@@ -1,56 +1,31 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Key, AlertTriangle, CheckCircle2, User, Sparkles, ChevronLeft, Loader2, Ticket, Lock, ShieldCheck, HelpCircle } from 'lucide-react';
-import { validateApiKey, sendMessageToGemini } from '../services/gemini';
+import { motion } from 'framer-motion';
+import { Send, User, Sparkles, ChevronLeft } from 'lucide-react';
+import { sendMessageToGemini } from '../services/gemini';
 import { ChatMessage } from '../types';
 import { SFX } from '../services/sfx';
-import { OnboardingGuide, GuideStep } from './OnboardingGuide';
 
 interface GeminiChatProps {
-  apiKey?: string;
-  onSaveKey: (key: string) => void;
   navigate: (path: string) => void;
   seenGuidanceIds?: string[];
   onMarkSeen?: (id: string) => void;
 }
 
-export const GeminiChat: React.FC<GeminiChatProps> = ({ apiKey, onSaveKey, navigate, seenGuidanceIds = [], onMarkSeen }) => {
-  const [inputKey, setInputKey] = useState('');
-  const [isValidating, setIsValidating] = useState(false);
+export const GeminiChat: React.FC<GeminiChatProps> = ({ navigate }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMsg, setInputMsg] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [forceShowGuide, setForceShowGuide] = useState(false); // Manual trigger
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // GUIDANCE LOGIC
-  const GUIDE_ID = 'intro_api_key';
-  // Show if never seen OR forced
-  const showGuide = (!apiKey && !seenGuidanceIds.includes(GUIDE_ID)) || forceShowGuide;
-
-  const handleGuideComplete = (id: string) => {
-      setForceShowGuide(false);
-      if (onMarkSeen) onMarkSeen(id);
-  };
-
-  const guideSteps: GuideStep[] = [
-    {
-        title: "Koneksi ke Otak Cerdas",
-        description: "Fitur ini menghubungkanmu langsung dengan Kecerdasan Buatan (AI) Google Gemini. Kamu bisa bertanya apa saja tentang Bahasa Arab layaknya chat dengan guru privat.",
-        icon: Sparkles
-    },
-    {
-        title: "Apa itu API Key?",
-        description: "Bayangkan API Key sebagai 'Tiket Masuk' digital. Untuk menggunakan otak Google, aplikasi ini butuh tiket tersebut. Kabar baiknya: Tiket ini 100% GRATIS.",
-        icon: Ticket
-    },
-    {
-        title: "Cara Mendapatkannya",
-        description: "1. Klik link 'Dapatkan di Google AI Studio' di bawah.\n2. Login akun Google.\n3. Klik 'Create API Key' dan salin kodenya ke sini.",
-        icon: Key
-    }
-  ];
+  useEffect(() => {
+    // Initial Greeting from Ustadz
+    setMessages([{
+        role: 'model',
+        text: "Assalamu'alaikum warahmatullah. Mari duduk sejenak. Bagian mana dari pelajaran tadi yang masih mengganjal di hati? Jangan sungkan bertanya, Ustadz di sini untuk menemani belajarmu.",
+        timestamp: Date.now()
+    }]);
+  }, []);
 
   useEffect(() => {
     scrollToBottom();
@@ -60,30 +35,8 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({ apiKey, onSaveKey, navig
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleSaveKey = async () => {
-    if (!inputKey.trim()) return;
-    setIsValidating(true);
-    SFX.playClick();
-    
-    const isValid = await validateApiKey(inputKey);
-    setIsValidating(false);
-
-    if (isValid) {
-      SFX.playSuccess();
-      onSaveKey(inputKey);
-      setMessages([{
-        role: 'model',
-        text: "Assalamu'alaikum warahmatullah. Mari duduk sejenak. Bagian mana dari pelajaran tadi yang masih mengganjal di hati? Jangan sungkan bertanya, Ustadz di sini untuk menemani belajarmu.",
-        timestamp: Date.now()
-      }]);
-    } else {
-      SFX.playError();
-      alert("API Key tidak valid. Mohon periksa kembali.");
-    }
-  };
-
   const handleSend = async () => {
-    if (!inputMsg.trim() || !apiKey) return;
+    if (!inputMsg.trim()) return;
 
     const userText = inputMsg;
     setInputMsg('');
@@ -101,7 +54,7 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({ apiKey, onSaveKey, navig
         text: m.text
     }));
 
-    const responseText = await sendMessageToGemini(apiKey, historyPayload, userText);
+    const responseText = await sendMessageToGemini(historyPayload, userText);
     
     setIsTyping(false);
     SFX.playPop();
@@ -112,77 +65,6 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({ apiKey, onSaveKey, navig
     ]);
   };
 
-  // --- VIEW: SETUP KEY ---
-  if (!apiKey) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[80vh] p-6 text-center">
-        
-        {/* THE ONBOARDING GUIDE */}
-        {onMarkSeen && (
-            <OnboardingGuide 
-                id={GUIDE_ID}
-                isOpen={showGuide}
-                steps={guideSteps}
-                onComplete={handleGuideComplete}
-            />
-        )}
-
-        <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6 relative">
-          <Key className="w-8 h-8 text-gray-400" />
-          <div className="absolute -top-1 -right-1 bg-amber-500 text-white p-1 rounded-full border-2 border-white">
-            <Lock className="w-3 h-3" />
-          </div>
-        </div>
-        
-        <h2 className="font-serif font-bold text-2xl text-[#1a1512] mb-2">Aktivasi Guru AI</h2>
-        <p className="text-gray-500 text-sm mb-8 leading-relaxed max-w-xs">
-          Masukkan kunci rahasia (API Key) Anda untuk mulai bertanya.
-        </p>
-
-        <div className="w-full max-w-sm space-y-4">
-          <input 
-            type="password" 
-            placeholder="Tempel API Key di sini..."
-            className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-[#8a1c1c] focus:outline-none transition-colors"
-            value={inputKey}
-            onChange={(e) => setInputKey(e.target.value)}
-          />
-          
-          <button 
-            onClick={handleSaveKey}
-            disabled={isValidating || !inputKey}
-            className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg transition-all
-              ${isValidating || !inputKey ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-[#1a1512] text-white hover:bg-black'}
-            `}
-          >
-             {isValidating ? <Loader2 className="w-5 h-5 animate-spin" /> : <ShieldCheck className="w-5 h-5" />}
-             {isValidating ? 'Memeriksa...' : 'Simpan & Hubungkan'}
-          </button>
-
-          <p className="text-xs text-gray-400 mt-4 bg-gray-50 p-3 rounded-lg border border-gray-100">
-            Belum punya key? <br/>
-            <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-[#8a1c1c] font-bold underline block mt-1">
-                Dapatkan GRATIS di Google AI Studio
-            </a>
-          </p>
-
-          <button 
-             onClick={() => setForceShowGuide(true)}
-             className="flex items-center justify-center gap-1 mx-auto text-xs text-gray-400 hover:text-[#8a1c1c] mt-2 transition-colors"
-          >
-             <HelpCircle className="w-3 h-3" />
-             <span>Saya bingung, tolong jelaskan lagi</span>
-          </button>
-        </div>
-        
-        <button onClick={() => navigate('/contents')} className="mt-8 text-sm font-bold text-gray-400 hover:text-[#1a1512]">
-            Kembali ke Pelajaran
-        </button>
-      </div>
-    );
-  }
-
-  // --- VIEW: CHAT INTERFACE ---
   return (
     <div className="flex flex-col h-screen bg-[#f8f9fa] safe-bottom pb-20">
        <div className="bg-white px-4 py-4 border-b border-gray-100 flex items-center gap-3 shadow-sm sticky top-0 z-10">

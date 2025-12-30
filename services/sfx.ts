@@ -1,38 +1,54 @@
+
 /**
  * Simple Sound Effects Engine using Web Audio API
  * Generates sounds synthetically to keep the app lightweight (no mp3 files).
+ * Handles AudioContext states for browser autoplay policies.
  */
 
 let audioCtx: AudioContext | null = null;
 
 const initAudio = () => {
   if (!audioCtx) {
-    audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    // Cross-browser support
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (AudioContextClass) {
+        audioCtx = new AudioContextClass();
+    }
   }
-  if (audioCtx.state === 'suspended') {
-    audioCtx.resume();
+  
+  // Resume context if suspended (Chrome/Safari Autoplay Policy)
+  if (audioCtx && audioCtx.state === 'suspended') {
+    audioCtx.resume().catch(e => console.warn("Audio Context resume failed", e));
   }
+  
   return audioCtx;
 };
 
 // Helper: Create an oscillator with envelope
 const playTone = (freq: number, type: OscillatorType, duration: number, vol: number = 0.1, delay: number = 0) => {
   const ctx = initAudio();
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
+  if (!ctx) return; // Fail gracefully if Web Audio API not supported
 
-  osc.type = type;
-  osc.frequency.setValueAtTime(freq, ctx.currentTime + delay);
+  try {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
 
-  gain.gain.setValueAtTime(0, ctx.currentTime + delay);
-  gain.gain.linearRampToValueAtTime(vol, ctx.currentTime + delay + 0.01);
-  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + duration);
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, ctx.currentTime + delay);
 
-  osc.connect(gain);
-  gain.connect(ctx.destination);
+    gain.gain.setValueAtTime(0, ctx.currentTime + delay);
+    gain.gain.linearRampToValueAtTime(vol, ctx.currentTime + delay + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + duration);
 
-  osc.start(ctx.currentTime + delay);
-  osc.stop(ctx.currentTime + delay + duration);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(ctx.currentTime + delay);
+    osc.stop(ctx.currentTime + delay + duration);
+  } catch (e) {
+      // Ignore audio errors to prevent app crash
+      console.warn("SFX Error:", e);
+  }
 };
 
 export const SFX = {

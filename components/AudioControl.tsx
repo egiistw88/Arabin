@@ -37,6 +37,7 @@ export const AudioControl: React.FC<AudioControlProps> = ({ text, audioSrc }) =>
     } else {
       setIsPlaying(true);
       // Pass the onEnd callback to reset state
+      // The audio service now handles fallbacks internally
       cleanupRef.current = playArabicAudio(text, audioSrc, () => {
           setIsPlaying(false);
           cleanupRef.current = null;

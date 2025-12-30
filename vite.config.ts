@@ -1,16 +1,21 @@
-
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 
-export default defineConfig({
-  plugins: [react()],
-  publicDir: 'public', 
-  build: {
-    outDir: 'dist',
-    sourcemap: false,
-    target: 'esnext' 
-  },
-  server: {
-    host: true
-  }
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, (process as any).cwd(), '');
+  return {
+    plugins: [react()],
+    publicDir: 'public', 
+    build: {
+      outDir: 'dist',
+      sourcemap: false,
+      target: 'esnext' 
+    },
+    server: {
+      host: true
+    },
+    define: {
+      'process.env.API_KEY': JSON.stringify(env.API_KEY)
+    }
+  };
 });

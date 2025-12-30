@@ -19,43 +19,28 @@ Struktur Jawaban (Mengalir dalam paragraf):
 - **Paragraf 1 (Validasi & Logika)**: Mulai dengan menenangkan pengguna bahwa bingung itu wajar. Lalu masuk ke penjelasan logika/analogi. Gunakan kata "Bayangkan...", "Ibarat...", "Coba lihat...".
 - **Paragraf 2 (Contoh Nyata)**: Ajak pengguna melihat contoh langsung. "Nah, kalau kita pakai kata ini..."
 - **Paragraf 3 (Kunci Ingatan & Doa)**: Berikan cara gampang mengingatnya, lalu tutup kalimat dengan doa singkat yang tulus agar mereka dimudahkan, menyatu dengan kalimat penutup (bukan terpisah).
-
-Contoh Tone yang SALAH:
-"Berikut adalah perbedaan Haza dan Zalika: 1. Haza untuk dekat. 2. Zalika untuk jauh." (TERLALU KAKU)
-
-Contoh Tone yang BENAR:
-"Pertanyaan yang bagus. Seringkali kita tertukar di sini, tapi kuncinya sederhana sekali. Coba bayangkan tanganmu. Kalau bendanya bisa kamu sentuh sekarang, katakan 'Haza'. Tapi kalau bendanya jauh di sana, seperti bintang di langit atau burung di pohon, kita tunjuk dengan 'Zalika'. Jadi, ini soal jangkauan tangan kita saja. Semoga Allah tajamkan pemahamanmu ya."
 `;
 
-export const validateApiKey = async (apiKey: string): Promise<boolean> => {
-  try {
-    const ai = new GoogleGenAI({ apiKey });
-    // Simple test call to verify key
-    await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: 'Ping',
-    });
-    return true;
-  } catch (error) {
-    console.error("API Key Validation Failed:", error);
-    return false;
-  }
-};
-
 export const sendMessageToGemini = async (
-  apiKey: string, 
   history: {role: 'user'|'model', text: string}[], 
   newMessage: string
 ): Promise<string> => {
   try {
-    const ai = new GoogleGenAI({ apiKey });
+    // API Key must be obtained exclusively from process.env.API_KEY
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    
+    // Construct the prompt with history context manually if needed, 
+    // but for simple Q&A we can rely on system instructions + new message.
+    // For better context, we can concatenate or use chat mode. 
+    // Here we use generateContent with the last query for simplicity and cost efficiency,
+    // assuming the 'Ustadz' persona carries enough context.
     
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3-flash-preview',
       contents: newMessage, 
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
-        temperature: 0.8, // Slightly higher for more natural/creative flow
+        temperature: 0.8, 
       }
     });
 
@@ -63,6 +48,6 @@ export const sendMessageToGemini = async (
     
   } catch (error) {
     console.error("Gemini Error:", error);
-    return "Mohon maaf, koneksi batin kita terputus sejenak (Error Jaringan). Coba periksa koneksi atau API Key-mu ya.";
+    return "Mohon maaf, koneksi batin kita terputus sejenak (Error Jaringan). Coba periksa koneksi internetmu ya.";
   }
 };

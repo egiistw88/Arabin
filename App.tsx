@@ -39,8 +39,7 @@ const getProgress = (): UserProgress => {
         currentStreak: 0,
         lastStudyDate: '',
         totalXp: 0,
-        seenGuidanceIds: [],
-        geminiApiKey: ''
+        seenGuidanceIds: []
       };
     }
     const parsed = JSON.parse(saved);
@@ -52,8 +51,7 @@ const getProgress = (): UserProgress => {
       currentStreak: typeof parsed.currentStreak === 'number' ? parsed.currentStreak : 0,
       lastStudyDate: parsed.lastStudyDate || '',
       totalXp: parsed.totalXp || (Array.isArray(parsed.completedLessons) ? parsed.completedLessons.length * 150 : 0),
-      seenGuidanceIds: Array.isArray(parsed.seenGuidanceIds) ? parsed.seenGuidanceIds : [],
-      geminiApiKey: parsed.geminiApiKey || ''
+      seenGuidanceIds: Array.isArray(parsed.seenGuidanceIds) ? parsed.seenGuidanceIds : []
     };
   } catch (e) {
     return { 
@@ -64,8 +62,7 @@ const getProgress = (): UserProgress => {
       currentStreak: 0,
       lastStudyDate: '',
       totalXp: 0,
-      seenGuidanceIds: [],
-      geminiApiKey: ''
+      seenGuidanceIds: []
     };
   }
 };
@@ -121,14 +118,6 @@ const markLessonComplete = (lessonId: string) => {
 const updateUserName = (name: string) => {
     const current = getProgress();
     const updated: UserProgress = { ...current, userName: name };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-    window.dispatchEvent(new Event('durus-progress-updated'));
-};
-
-// NEW: Save API Key
-const updateApiKey = (key: string) => {
-    const current = getProgress();
-    const updated: UserProgress = { ...current, geminiApiKey: key };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
     window.dispatchEvent(new Event('durus-progress-updated'));
 };
@@ -515,20 +504,6 @@ const ProfileScreen = () => {
                    </button>
                    
                    <button 
-                      onClick={() => { SFX.playClick(); navigate('/ask-teacher'); }}
-                      className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors border-b border-gray-100"
-                   >
-                      <div className="flex items-center gap-3">
-                          <Key className="w-4 h-4 text-amber-500" />
-                          <div className="text-left">
-                            <span className="text-sm font-bold text-[#1a1512] block">Atur API Key Guru AI</span>
-                            <span className="text-[10px] text-gray-400">{progress.geminiApiKey ? 'Terhubung (Gemini)' : 'Belum diatur'}</span>
-                          </div>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-gray-300" />
-                   </button>
-
-                   <button 
                       onClick={() => { SFX.playPop(); resetGuidanceHistory(); alert("Riwayat bimbingan guru telah direset."); }}
                       className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors border-b border-gray-100"
                    >
@@ -562,10 +537,6 @@ const ProfileScreen = () => {
       </div>
     );
 };
-
-// ... [Rest of the file remains unchanged, but repeated below for XML completeness] ...
-// Since I must output the full file content, I'm pasting the rest of App.tsx logic
-// Note: Only the ProfileScreen component logic changed significantly, but I include everything.
 
 interface LessonSessionProps {
     lessonId?: string;
@@ -1046,8 +1017,6 @@ const App = () => {
     } else if (path === '/ask-teacher') {
          content = (
             <GeminiChat 
-               apiKey={progress.geminiApiKey} 
-               onSaveKey={updateApiKey} 
                navigate={navigate}
                seenGuidanceIds={progress.seenGuidanceIds}
                onMarkSeen={markGuidanceSeen}

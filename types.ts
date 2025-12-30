@@ -78,7 +78,6 @@ export interface UserProgress {
   lastStudyDate: string; 
   totalXp?: number; 
   seenGuidanceIds?: string[]; 
-  geminiApiKey?: string; // NEW: Store User's API Key
 }
 
 export interface ChatMessage {

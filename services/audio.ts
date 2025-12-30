@@ -1,157 +1,181 @@
 
 /**
- * Advanced Text-to-Speech Handler for Arabic
- * Fixes issues with:
- * 1. Garbage Collection killing audio prematurely
- * 2. Race conditions (overlapping audio)
- * 3. Mobile browser delays/blocks
+ * Professional Audio Engine for Arabic TTS
+ * 
+ * ARCHITECTURE NOTES:
+ * 1. Hybrid Strategy: Prioritizes static Audio Files (High Quality) -> Fallbacks to Native TTS (Reliability).
+ * 2. Memory Management: Fixes Chrome/Android Garbage Collection bug where audio cuts off.
+ * 3. iOS Compatibility: Ensures 'voiceschanged' is handled correctly for Safari.
+ * 4. Error Handling: Replaces timeout-based fallbacks with event-driven fallbacks (onerror).
  */
 
-// GLOBAL STATE TRACKERS
-let currentAudioObj: HTMLAudioElement | null = null;
-let activeUtterance: SpeechSynthesisUtterance | null = null; // Prevent GC removal
-let voicesLoaded = false;
-let arabicVoice: SpeechSynthesisVoice | null = null;
-
-// 1. VOICE PRE-LOADING (CRITICAL FOR ANDROID/CHROME)
-const loadVoices = () => {
-    if (!('speechSynthesis' in window)) return;
-    
-    const voices = window.speechSynthesis.getVoices();
-    if (voices.length > 0) {
-        // Prioritas: Google Arabic -> Microsoft Arabic -> Generic Arabic -> Lang ID
-        arabicVoice = voices.find(v => v.lang === 'ar-SA' && v.name.includes('Google')) ||
-                      voices.find(v => v.lang.includes('ar-SA')) ||
-                      voices.find(v => v.lang.includes('ar')) ||
-                      null;
-        voicesLoaded = true;
-    }
+// --- STATE MANAGEMENT ---
+// Global references to prevent Garbage Collection (CRITICAL for TTS stability)
+const state = {
+  currentAudioObj: null as HTMLAudioElement | null,
+  activeUtterance: null as SpeechSynthesisUtterance | null,
+  voices: [] as SpeechSynthesisVoice[],
+  preferredVoice: null as SpeechSynthesisVoice | null,
+  voicesLoaded: false
 };
 
-// Initialize voices immediately
-if ('speechSynthesis' in window) {
-    loadVoices();
-    // Chrome needs this event to load voices async
+// --- VOICE LOADER ENGINE ---
+const loadVoices = () => {
+  if (typeof window === 'undefined' || !window.speechSynthesis) return;
+
+  const allVoices = window.speechSynthesis.getVoices();
+  
+  if (allVoices.length > 0) {
+    state.voices = allVoices;
+    state.voicesLoaded = true;
+
+    // HEURISTIC: Find the best Arabic voice
+    // Priority: 
+    // 1. Google Arabic (Natural sounding on Android)
+    // 2. Maged (High quality on iOS)
+    // 3. Any region-specific Arabic (ar-SA, ar-EG)
+    // 4. Any generic Arabic (ar)
+    state.preferredVoice = 
+      allVoices.find(v => v.lang === 'ar-SA' && v.name.includes('Google')) ||
+      allVoices.find(v => v.name.includes('Maged')) || 
+      allVoices.find(v => v.lang === 'ar-SA') ||
+      allVoices.find(v => v.lang.startsWith('ar-')) ||
+      allVoices.find(v => v.lang === 'ar') ||
+      null;
+
+    // console.log("Audio Engine: Voices Loaded.", state.preferredVoice ? `Selected: ${state.preferredVoice.name}` : "No Arabic Voice Found");
+  }
+};
+
+// Initialize voice loading immediately and listen for async updates
+if (typeof window !== 'undefined' && window.speechSynthesis) {
+  loadVoices();
+  // Chrome/Android loads voices asynchronously
+  if (window.speechSynthesis.onvoiceschanged !== undefined) {
     window.speechSynthesis.onvoiceschanged = loadVoices;
+  }
 }
 
+// --- PUBLIC API ---
+
 export const playArabicAudio = (text: string, audioUrl?: string, onEnd?: () => void): () => void => {
-  // A. HARD RESET (Stop all previous sounds immediately)
-  if (currentAudioObj) {
-    currentAudioObj.pause();
-    currentAudioObj.currentTime = 0;
-    currentAudioObj = null;
-  }
-  
-  if ('speechSynthesis' in window) {
-    window.speechSynthesis.cancel(); // Clears queue
-  }
+  // 1. HARD RESET: Stop everything currently playing
+  stopAllAudio();
 
-  // Helper to handle completion safely
-  const handleEnd = () => {
-      activeUtterance = null; // Release memory
-      if (onEnd) onEnd();
-  };
-
-  // B. STRATEGY 1: PLAY AUDIO FILE (Only if URL is valid & real)
-  // Check if URL is valid and NOT a placeholder/example
-  const isValidUrl = audioUrl && 
-                     audioUrl.length > 5 && 
-                     !audioUrl.includes('example.com') && 
-                     !audioUrl.includes('placeholder');
+  // 2. STRATEGY A: AUDIO FILE (High Fidelity)
+  // We utilize Event-Driven Fallback instead of setTimeout to prevent race conditions.
+  const isValidUrl = audioUrl && audioUrl.length > 5 && !audioUrl.includes('placeholder');
 
   if (isValidUrl) {
+    // console.log("Audio Engine: Attempting File Playback", audioUrl);
     const audio = new Audio(audioUrl);
-    currentAudioObj = audio;
-    
-    // Safety check: If audio fails to load quickly, fallback to TTS
-    const loadTimeout = setTimeout(() => {
-        if (currentAudioObj === audio && audio.readyState === 0) {
-            console.warn("Audio load timeout, switching to TTS");
-            audio.pause();
-            speakNative(text, handleEnd);
-        }
-    }, 2000); 
+    state.currentAudioObj = audio;
 
-    audio.onended = () => {
-        clearTimeout(loadTimeout);
-        handleEnd();
+    const handleFileEnd = () => {
+      cleanupAudioFile();
+      if (onEnd) onEnd();
     };
 
-    audio.onerror = () => {
-        clearTimeout(loadTimeout);
-        console.warn("Audio file error, falling back to TTS");
-        speakNative(text, handleEnd);
+    const handleFileError = (e: Event | string) => {
+      // console.warn("Audio Engine: File failed, switching to TTS fallback.", e);
+      cleanupAudioFile();
+      // IMMEDIATE FALLBACK to TTS
+      speakNative(text, onEnd);
     };
-    
-    // Attempt play
-    audio.play().catch(e => {
-        clearTimeout(loadTimeout);
-        console.warn("Autoplay blocked/failed, falling back to TTS", e);
-        speakNative(text, handleEnd);
-    });
 
+    audio.onended = handleFileEnd;
+    audio.onerror = handleFileError;
+    
+    // Attempt play. If autoplay policy blocks it, catch and fallback.
+    const playPromise = audio.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(error => {
+        // console.warn("Audio Engine: Autoplay blocked or interrupted.", error);
+        handleFileError(error.message);
+      });
+    }
+
+    // Return canceller
     return () => {
-        clearTimeout(loadTimeout);
-        audio.pause();
-        if (currentAudioObj === audio) currentAudioObj = null;
+      cleanupAudioFile();
     };
   } 
   
-  // C. STRATEGY 2: NATIVE TTS (Immediate Fallback)
-  return speakNative(text, handleEnd);
+  // 3. STRATEGY B: NATIVE TTS (Reliable Fallback)
+  // console.log("Audio Engine: Using Native TTS");
+  return speakNative(text, onEnd);
 };
 
-// Internal TTS Logic
-const speakNative = (text: string, onEnd: () => void): () => void => {
-    if (!('speechSynthesis' in window)) {
-        console.error("Browser does not support TTS");
-        onEnd();
-        return () => {};
-    }
+// --- INTERNAL HELPERS ---
 
-    // Double ensure queue is clear
+const stopAllAudio = () => {
+  // Stop File Audio
+  cleanupAudioFile();
+
+  // Stop TTS
+  if (typeof window !== 'undefined' && window.speechSynthesis) {
     window.speechSynthesis.cancel();
+    state.activeUtterance = null;
+  }
+};
 
-    // Create new utterance
-    const utterance = new SpeechSynthesisUtterance(text);
-    
-    // Keep reference in global scope to prevent Garbage Collection (Fixes audio cutting off)
-    activeUtterance = utterance;
+const cleanupAudioFile = () => {
+  if (state.currentAudioObj) {
+    state.currentAudioObj.pause();
+    state.currentAudioObj.src = ""; // Release memory
+    state.currentAudioObj.onerror = null;
+    state.currentAudioObj.onended = null;
+    state.currentAudioObj = null;
+  }
+};
 
-    // Config
-    utterance.lang = 'ar-SA';
-    utterance.rate = 0.8; // Slower for learning
-    utterance.pitch = 1.0;
-    utterance.volume = 1.0;
+const speakNative = (text: string, onEnd?: () => void): () => void => {
+  if (typeof window === 'undefined' || !window.speechSynthesis) {
+    if (onEnd) onEnd();
+    return () => {};
+  }
 
-    // Apply pre-loaded voice if available
-    if (!voicesLoaded) loadVoices(); // Try loading again just in case
-    if (arabicVoice) {
-        utterance.voice = arabicVoice;
+  // Ensure queue is clear for immediate response
+  window.speechSynthesis.cancel();
+
+  // Retry loading voices if they weren't ready yet (Common in Safari on first load)
+  if (!state.voicesLoaded) loadVoices();
+
+  const utterance = new SpeechSynthesisUtterance(text);
+  
+  // CRITICAL: Assign to global state to prevent Garbage Collection during playback
+  state.activeUtterance = utterance;
+
+  // Configuration
+  utterance.rate = 0.85; // Slightly slower for educational purposes
+  utterance.pitch = 1.0;
+  utterance.volume = 1.0;
+  utterance.lang = 'ar-SA'; // Default hint
+
+  if (state.preferredVoice) {
+    utterance.voice = state.preferredVoice;
+  }
+
+  // Events
+  utterance.onend = () => {
+    state.activeUtterance = null; // Release memory reference
+    if (onEnd) onEnd();
+  };
+
+  utterance.onerror = (e) => {
+    // console.error("TTS Error Event:", e);
+    state.activeUtterance = null;
+    if (onEnd) onEnd();
+  };
+
+  // Speak
+  window.speechSynthesis.speak(utterance);
+
+  // Return canceller
+  return () => {
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel();
     }
-
-    // Events
-    utterance.onend = () => {
-        onEnd();
-        activeUtterance = null; // Clean ref
-    };
-
-    utterance.onerror = (e) => {
-        // 'canceled' or 'interrupted' errors are normal when user clicks fast
-        if (e.error !== 'canceled' && e.error !== 'interrupted') {
-             console.error("TTS Error:", e);
-        }
-        onEnd();
-        activeUtterance = null;
-    };
-
-    // SPEAK
-    window.speechSynthesis.speak(utterance);
-
-    // Return Cleanup Function
-    return () => {
-        window.speechSynthesis.cancel();
-        activeUtterance = null;
-    };
-}
+    state.activeUtterance = null;
+  };
+};
