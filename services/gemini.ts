@@ -1,5 +1,5 @@
 
-import { GoogleGenAI, Content } from "@google/genai";
+import { GoogleGenAI, Content, Part } from "@google/genai";
 
 const SYSTEM_INSTRUCTION = `
 Anda adalah "Ustadz Logika", seorang pembimbing bahasa Arab yang sepuh, bijaksana, dan sangat sabar. 
@@ -60,10 +60,16 @@ export const sendMessageToGemini = async (
         // Merge logic to prevent "User -> User" or "Model -> Model"
         if (contents.length > 0 && contents[contents.length - 1].role === role) {
             // Append text to the previous turn of the same role
-            const lastPart = contents[contents.length - 1].parts[0];
-            if (lastPart && 'text' in lastPart) {
-                // We add a newline to separate thoughts
-                (lastPart as any).text += `\n\n${text}`;
+            const previousContent = contents[contents.length - 1];
+            
+            // Safe access to parts (Fix for TS2532)
+            if (previousContent.parts && previousContent.parts.length > 0) {
+                const lastPart = previousContent.parts[0];
+                if (lastPart && 'text' in lastPart) {
+                    // We add a newline to separate thoughts. 
+                    // Casting to any to avoid strict readonly checks if present in SDK types
+                    (lastPart as any).text += `\n\n${text}`;
+                }
             }
         } else {
             // New turn
