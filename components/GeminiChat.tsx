@@ -39,6 +39,8 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
 
   useEffect(() => {
     // Dynamic Greeting based on context
+    // This message is purely visual for the UI. The Service will filter it out 
+    // to ensure the API call starts with 'user'.
     let greeting = "Assalamu'alaikum. Ada yang membingungkanmu?";
     if (contextData?.selectedWord) {
         greeting = `Assalamu'alaikum. Ingin membahas kata "${contextData.selectedWord}" pada kalimat tadi? Ustadz siap jelaskan logikanya.`;
@@ -53,7 +55,7 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
         text: greeting,
         timestamp: Date.now()
     }]);
-  }, [contextData?.selectedWord, contextData?.lessonTitle]); // Re-greet if context changes significantly
+  }, [contextData?.selectedWord, contextData?.lessonTitle]); 
 
   useEffect(() => {
     scrollToBottom();
@@ -70,6 +72,7 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
     setInputMsg('');
     SFX.playClick();
 
+    // 1. Optimistic Update (Show user message immediately)
     const newMessages: ChatMessage[] = [
       ...messages,
       { role: 'user', text: userText, timestamp: Date.now() }
@@ -77,26 +80,21 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({
     setMessages(newMessages);
     setIsTyping(true);
 
-    const historyPayload = newMessages.slice(-10).map(m => ({
-        role: m.role as 'user' | 'model',
-        text: m.text
-    }));
-
-    // CONSTRUCT CONTEXT STRING
+    // 2. Prepare Context (Only relevant for the immediate turn)
     let contextString = '';
     if (contextData) {
         contextString = `
-            INFORMASI PELAJARAN SAAT INI:
-            - Bab: ${contextData.lessonTitle}
-            - Kalimat Arab: ${contextData.sentenceArabic}
-            - Arti Kalimat: ${contextData.sentenceTranslation}
-            ${contextData.selectedWord ? `- FOKUS PENGGUNA (Kata yang di-klik): "${contextData.selectedWord}" (Peran: ${contextData.selectedRole || 'Belum tahu'})` : ''}
-            
-            Instruksi: Jawab pertanyaan pengguna dengan mengacu pada informasi di atas. Jika pengguna bertanya "Kenapa ini?", rujuk ke kata yang dipilih.
+            [DATA PELAJARAN]
+            Bab: ${contextData.lessonTitle}
+            Kalimat: ${contextData.sentenceArabic} ("${contextData.sentenceTranslation}")
+            ${contextData.selectedWord ? `FOKUS: Kata "${contextData.selectedWord}" (${contextData.selectedRole || '?'})` : ''}
         `;
     }
 
-    const responseText = await sendMessageToGemini(historyPayload, userText, contextString);
+    // 3. Send to Service
+    // We pass the FULL newMessages array. The service will handle filtering the last message
+    // and sanitizing the history to satisfy Gemini API requirements.
+    const responseText = await sendMessageToGemini(newMessages, userText, contextString);
     
     setIsTyping(false);
     SFX.playPop();
