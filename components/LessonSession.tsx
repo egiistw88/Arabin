@@ -10,6 +10,7 @@ import { SentenceBuilder } from './SentenceBuilder';
 import { AudioControl } from './AudioControl';
 import { TutorDialog } from './TutorDialog'; 
 import { LessonSummary } from './LessonSummary';
+import { ConceptBoard } from './ConceptBoard'; // NEW IMPORT
 import { Segment, SessionMode, UserProgress } from '../types';
 import { SFX } from '../services/sfx';
 
@@ -38,7 +39,7 @@ export const LessonSession = ({
   
   const lesson = LESSON_DATA.find(l => l.id === lessonId);
   
-  const [mode, setMode] = useState<SessionMode>(SessionMode.EXPLORE);
+  const [mode, setMode] = useState<SessionMode>(SessionMode.CONCEPT); // Start with Concept
   const [selectedSegment, setSelectedSegment] = useState<Segment | null>(null);
   const [quizSentence, setQuizSentence] = useState<any>(null);
   const [showTutorDialog, setShowTutorDialog] = useState(false); 
@@ -50,13 +51,19 @@ export const LessonSession = ({
     }
   }, [lessonId]); 
   
+  // Logic to skip Concept if not page 0, OR handle direct navigation
   useEffect(() => {
-    // If not in summary mode, reset normally. If in summary, we stay.
-    if (mode !== SessionMode.SUMMARY) {
+    // If navigating to a middle page, skip concept. 
+    // If page is 0, we can show Concept, UNLESS we are already in summary/quiz.
+    if (pageIndex > 0 && mode === SessionMode.CONCEPT) {
         setMode(SessionMode.EXPLORE);
-        setSelectedSegment(null);
-        setShowTutorDialog(false); 
-        window.scrollTo(0,0);
+    }
+    
+    // Reset selected items when page changes
+    if (mode === SessionMode.EXPLORE || mode === SessionMode.BUILD) {
+         setSelectedSegment(null);
+         setShowTutorDialog(false); 
+         window.scrollTo(0,0);
     }
   }, [pageIndex, lessonId]);
 
@@ -108,6 +115,11 @@ export const LessonSession = ({
     
     const segment = currentSentence.segments.find(s => s.id === segId);
     return segId === selectedSegment.relatedToId || (segment?.relatedToId === selectedSegment.id);
+  };
+
+  const handleConceptComplete = () => {
+      setMode(SessionMode.EXPLORE);
+      window.scrollTo(0,0);
   };
 
   const handleNext = () => {
@@ -168,9 +180,9 @@ export const LessonSession = ({
         <div className="flex-1 flex flex-col justify-center">
            <div className="flex justify-between items-center mb-1">
              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-               {mode === SessionMode.EXPLORE ? 'FAHAMI (Explore)' : mode === SessionMode.BUILD ? 'SUSUN (Practice)' : mode === SessionMode.SUMMARY ? 'KHULASAH (Summary)' : 'UJIAN (Final)'}
+               {mode === SessionMode.CONCEPT ? 'TEORI (Concept)' : mode === SessionMode.EXPLORE ? 'FAHAMI (Explore)' : mode === SessionMode.BUILD ? 'SUSUN (Practice)' : mode === SessionMode.SUMMARY ? 'KHULASAH (Summary)' : 'UJIAN (Final)'}
              </span>
-             {mode !== SessionMode.SUMMARY && (
+             {mode !== SessionMode.SUMMARY && mode !== SessionMode.CONCEPT && (
                  <span className="text-[10px] font-bold text-[#1a1512]">{pageIndex + 1} / {totalPages}</span>
              )}
            </div>
@@ -185,7 +197,7 @@ export const LessonSession = ({
       </div>
 
       {/* CONTENT AREA */}
-      <div className="flex-1 w-full max-w-lg flex flex-col relative px-4 pt-6 pb-32 overflow-y-auto">
+      <div className="flex-1 w-full max-w-lg flex flex-col relative overflow-y-auto">
         
         {/* TUTOR POPUP DIALOG */}
         <TutorDialog 
@@ -197,8 +209,15 @@ export const LessonSession = ({
             }}
         />
 
+        {mode === SessionMode.CONCEPT && lesson.introConcepts && (
+            <ConceptBoard 
+                concepts={lesson.introConcepts}
+                onComplete={handleConceptComplete}
+            />
+        )}
+
         {mode === SessionMode.EXPLORE && (
-            <div className="flex-1 flex flex-col animate-in fade-in duration-500">
+            <div className="flex-1 flex flex-col animate-in fade-in duration-500 px-4 pt-6 pb-32">
                <div className="flex justify-between items-center mb-6">
                  <div className="flex items-center gap-2">
                     <Layers className="w-4 h-4 text-[#8a1c1c]" />
@@ -263,7 +282,7 @@ export const LessonSession = ({
         )}
 
         {mode === SessionMode.BUILD && (
-            <div className="flex-1 animate-in zoom-in-95 duration-300">
+            <div className="flex-1 animate-in zoom-in-95 duration-300 px-4 pt-6 pb-32">
                <SentenceBuilder 
                   sentence={currentSentence} 
                   onSuccess={handleNext}
@@ -272,7 +291,7 @@ export const LessonSession = ({
         )}
 
         {mode === SessionMode.QUIZ && (
-             <div className="flex-1 animate-in slide-in-from-right duration-300">
+             <div className="flex-1 animate-in slide-in-from-right duration-300 px-4 pt-6 pb-32">
                 <Quiz 
                   sentence={finalQuizSentence} 
                   onComplete={handleQuizComplete} 

@@ -1,6 +1,7 @@
+
 import React from 'react';
 import { motion as m, AnimatePresence } from 'framer-motion';
-import { Tag, Sparkles, AlertCircle, ArrowDown } from 'lucide-react';
+import { Tag, Sparkles, AlertCircle, ArrowDown, ArrowUpRight, Search } from 'lucide-react';
 import { Segment, WordType, LogicId } from '../types';
 
 const motion = m as any;
@@ -57,19 +58,32 @@ export const TutorPersona: React.FC<TutorPersonaProps> = ({ selectedSegment }) =
                     </p>
                     {selectedSegment.vowelEnding && (
                         <p className="text-xs text-gray-500 mt-0.5">
-                            Akhiran: <span className="font-bold text-[#1a1512]">{selectedSegment.vowelEnding === 'u' ? 'Dommah (u)' : selectedSegment.vowelEnding === 'i' ? 'Kasrah (i)' : 'Fathah (a)'}</span>
+                            Tanda: <span className="font-bold text-[#1a1512]">{selectedSegment.vowelEnding === 'u' || selectedSegment.vowelEnding === 'un' ? 'Dommah (u/un)' : selectedSegment.vowelEnding === 'i' || selectedSegment.vowelEnding === 'in' ? 'Kasrah (i/in)' : 'Fathah (a/an)'}</span>
                         </p>
                     )}
                 </div>
             </div>
 
-            {/* Penjelasan Logika */}
+            {/* Penjelasan Logika Dasar */}
             <div className="flex items-start gap-3">
                 <AlertCircle className="w-4 h-4 text-gray-400 mt-1 flex-shrink-0" />
                 <div className="text-sm text-gray-600 leading-relaxed font-serif">
                    {selectedSegment.explanation}
                 </div>
             </div>
+
+            {/* DEEP LOGIC / NUANCE (New Feature) */}
+            {selectedSegment.deepLogic && (
+                 <div className="mt-2 pl-3 border-l-2 border-[#1a1512]/20">
+                     <div className="flex items-center gap-1.5 mb-1">
+                        <Search className="w-3 h-3 text-[#1a1512]" />
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-[#1a1512]">Logika Kuncian</span>
+                     </div>
+                     <p className="text-xs text-gray-500 italic font-serif">
+                        "{selectedSegment.deepLogic}"
+                     </p>
+                 </div>
+            )}
             
              {/* Kausalitas Highlight (The Aha Moment) */}
             {selectedSegment.logicId === LogicId.AFTER_PREPOSITION && (
@@ -82,12 +96,29 @@ export const TutorPersona: React.FC<TutorPersonaProps> = ({ selectedSegment }) =
                     <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-400"></div>
                     <div className="flex items-center gap-2 font-bold uppercase tracking-wider text-[10px] text-amber-600">
                         <ArrowDown className="w-3 h-3" />
-                        Logika Kausalitas (Sebab-Akibat)
+                        Efek Domino (Sebab-Akibat)
                     </div>
                     <p className="leading-relaxed">
-                        Perhatikan! Kata ini berakhiran <strong>"i" (Kasrah)</strong> <span className="underline decoration-amber-400 decoration-2 underline-offset-2">semata-mata karena</span> ada Huruf Jar (Operator) di depannya.
+                        Harakatnya jadi Kasrah (i) <span className="underline decoration-amber-400 decoration-2 underline-offset-2">bukan kebetulan</span>, tapi karena dipaksa oleh Huruf Jar di depannya.
                     </p>
                 </motion.div>
+            )}
+
+            {selectedSegment.logicId === LogicId.PREPOSITION_TRIGGER && (
+                 <motion.div 
+                 initial={{ scale: 0.95, opacity: 0 }}
+                 animate={{ scale: 1, opacity: 1 }}
+                 transition={{ delay: 0.2 }}
+                 className="mt-2 bg-red-50 p-3 rounded-lg border border-red-100 text-xs text-red-900 flex flex-col gap-1 relative overflow-hidden"
+             >
+                 <div className="flex items-center gap-2 font-bold uppercase tracking-wider text-[10px] text-red-600">
+                     <ArrowUpRight className="w-3 h-3" />
+                     Sang Eksekutor (Amil)
+                 </div>
+                 <p className="leading-relaxed">
+                     Kata inilah "Pelaku Utama" yang mengubah harakat kata setelahnya menjadi Kasrah.
+                 </p>
+             </motion.div>
             )}
         </div>
 

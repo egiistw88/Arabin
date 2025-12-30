@@ -227,6 +227,21 @@ const App = () => {
             </MainLayout>
         );
     } 
+    else if (path === '/chat') {
+        // New Route for "Silaturahmi" / "Tanya"
+        content = (
+            <MainLayout currentPath={path}>
+               <Suspense fallback={<ScreenLoader />}>
+                   <GeminiChat 
+                        navigate={navigate} 
+                        isMainTab={true}
+                        seenGuidanceIds={progress.seenGuidanceIds}
+                        onMarkSeen={markGuidanceSeen}
+                   />
+               </Suspense>
+            </MainLayout>
+        );
+    }
     else if (path === '/profile') {
           content = (
             <MainLayout currentPath={path}>
@@ -241,6 +256,7 @@ const App = () => {
         );
     } 
     else if (path === '/ask-teacher') {
+         // Direct access from lesson (no bottom nav)
          content = (
             <Suspense fallback={<ScreenLoader />}>
                 <GeminiChat 

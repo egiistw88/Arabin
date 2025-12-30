@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion as m } from 'framer-motion';
-import { Send, User, Sparkles, ChevronLeft } from 'lucide-react';
+import { Send, User, Sparkles, ChevronLeft, Loader2 } from 'lucide-react';
 import { sendMessageToGemini } from '../services/gemini';
 import { ChatMessage } from '../types';
 import { SFX } from '../services/sfx';
@@ -12,9 +12,10 @@ interface GeminiChatProps {
   navigate: (path: string) => void;
   seenGuidanceIds?: string[];
   onMarkSeen?: (id: string) => void;
+  isMainTab?: boolean; // New prop to adjust UI for tab view
 }
 
-export const GeminiChat: React.FC<GeminiChatProps> = ({ navigate }) => {
+export const GeminiChat: React.FC<GeminiChatProps> = ({ navigate, isMainTab = false }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMsg, setInputMsg] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -68,11 +69,14 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({ navigate }) => {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-[#f8f9fa] safe-bottom pb-20">
-       <div className="bg-white px-4 py-4 border-b border-gray-100 flex items-center gap-3 shadow-sm sticky top-0 z-10">
-          <button onClick={() => navigate('/contents')} className="p-2 -ml-2 text-gray-400 hover:text-[#1a1512]">
-             <ChevronLeft className="w-6 h-6" />
-          </button>
+    <div className={`flex flex-col h-screen bg-[#f8f9fa] safe-bottom ${isMainTab ? 'pb-0' : 'pb-20'}`}>
+       {/* HEADER */}
+       <div className="bg-white px-4 py-4 border-b border-gray-100 flex items-center gap-3 shadow-sm sticky top-0 z-20">
+          {!isMainTab && (
+              <button onClick={() => navigate('/contents')} className="p-2 -ml-2 text-gray-400 hover:text-[#1a1512]">
+                 <ChevronLeft className="w-6 h-6" />
+              </button>
+          )}
           <div className="w-10 h-10 rounded-full bg-[#1a1512] flex items-center justify-center border-2 border-[#8a1c1c]">
              <span className="font-arabic text-xl text-white mt-1">ع</span>
           </div>
@@ -85,6 +89,7 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({ navigate }) => {
           </div>
        </div>
 
+       {/* CHAT AREA */}
        <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {messages.length === 0 && (
              <div className="text-center py-10 opacity-50">
@@ -129,10 +134,9 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({ navigate }) => {
                  <div className="w-8 h-8 rounded-full bg-[#1a1512] flex items-center justify-center mt-1">
                     <span className="font-arabic text-white mt-1">ع</span>
                  </div>
-                 <div className="bg-white p-4 rounded-2xl rounded-tl-none border border-gray-100 shadow-sm flex gap-1 items-center">
-                    <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></span>
-                    <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-75"></span>
-                    <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-150"></span>
+                 <div className="bg-white px-4 py-3 rounded-2xl rounded-tl-none border border-gray-100 shadow-sm flex items-center gap-3">
+                    <Loader2 className="w-4 h-4 text-[#8a1c1c] animate-spin" />
+                    <span className="text-xs text-gray-500 font-serif italic">Sedang memikirkan jawaban...</span>
                  </div>
              </motion.div>
           )}
@@ -140,7 +144,9 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({ navigate }) => {
           <div ref={messagesEndRef} />
        </div>
 
-       <div className="bg-white p-4 border-t border-gray-100 sticky bottom-0">
+       {/* INPUT AREA */}
+       {/* Sticky bottom behavior differs based on tab mode to avoid overlap with bottom nav */}
+       <div className={`bg-white p-4 border-t border-gray-100 sticky ${isMainTab ? 'bottom-16 border-b' : 'bottom-0'}`}>
           <div className="flex gap-2 max-w-lg mx-auto">
              <input 
                 type="text" 

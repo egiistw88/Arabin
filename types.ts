@@ -13,11 +13,17 @@ export enum LogicId {
   PREPOSITION_TRIGGER = 'rule_preposition', // The magnet
   AFTER_PREPOSITION = 'rule_after_preposition', // The result (Majrur)
   DEMONSTRATIVE = 'rule_demonstrative', // Isim Isyarah
-  QUESTION_TOOL = 'rule_question', // Istifham
+  QUESTION_TOOL = 'rule_question', // Istifham (Ma/Man)
+  QUESTION_HAMZAH = 'rule_question_hamzah', // Istifham (A...)
+  ANSWER_PARTICLE = 'rule_answer', // Na'am / La
+  DEFINITE_AL = 'rule_definite_al', // Al-Ma'rifah
+  POSSESSION = 'rule_mudhaf', // Idhafah
+  ADJECTIVE = 'rule_naat', // Na'at Man'ut
 }
 
 // Session Modes for Lesson Flow
 export enum SessionMode {
+  CONCEPT = 'concept', // NEW: Theory Phase
   EXPLORE = 'explore', 
   BUILD = 'build',
   QUIZ = 'quiz',
@@ -33,6 +39,7 @@ export interface Segment {
   vowelEnding?: string; // u, i, a
   logicId: LogicId;
   explanation: string; // The "Tutor" persona text
+  deepLogic?: string; // NEW: Detailed grammatical nuance (The "Why")
   grammaticalRole?: string; // Explicit role e.g., "Mubtada", "Khobar"
   relatedToId?: string; // If this word is affected by another (causality)
 }
@@ -59,14 +66,27 @@ export interface LessonSummary {
   teacherTip: string; // The "Pro Tip" or mnemonic
 }
 
+// NEW: Concept Slide for Theoretical Grounding
+export interface ConceptSlide {
+    title: string;
+    description: string;
+    analogyIcon?: string; // e.g., "Magnet", "Crown", "Bridge"
+    visualRule: {
+        before: string;
+        after: string;
+        explanation: string;
+    };
+}
+
 export interface Lesson {
   id: string;
   title: string;
   description: string;
+  introConcepts: ConceptSlide[]; // NEW: Theory before Practice
   sentences: Sentence[];
   concepts: string[];
-  vocabulary: VocabularyItem[]; // New: List of vocab for this lesson
-  summary?: LessonSummary; // NEW: Wrap-up content
+  vocabulary: VocabularyItem[]; 
+  summary?: LessonSummary; 
 }
 
 export interface UserProgress {

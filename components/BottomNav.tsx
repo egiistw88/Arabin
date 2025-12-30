@@ -1,5 +1,6 @@
+
 import React from 'react';
-import { Map, Book, User } from 'lucide-react';
+import { Map, Book, User, MessageCircle } from 'lucide-react';
 import { motion as m } from 'framer-motion';
 import { SFX } from '../services/sfx';
 
@@ -12,7 +13,8 @@ interface BottomNavProps {
 
 export const BottomNav: React.FC<BottomNavProps> = ({ currentPath, navigate }) => {
   const navItems = [
-    { to: '/contents', icon: Map, label: 'Peta Belajar', id: 'nav-map' },
+    { to: '/contents', icon: Map, label: 'Peta', id: 'nav-map' },
+    { to: '/chat', icon: MessageCircle, label: 'Tanya', id: 'nav-chat' },
     { to: '/dictionary', icon: Book, label: 'Kamus', id: 'nav-book' },
     { to: '/profile', icon: User, label: 'Profil', id: 'nav-profile' },
   ];
