@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, ChevronRight, ChevronLeft, Layers, GraduationCap, RotateCcw } from 'lucide-react';
-import { motion as m } from 'framer-motion'; 
+import { X, ChevronRight, ChevronLeft, Layers, GraduationCap, RotateCcw, MessageCircle } from 'lucide-react';
+import { motion as m, AnimatePresence } from 'framer-motion'; 
 import { LESSON_DATA } from '../services/data';
 import { ArabicWord } from './ArabicWord';
 import { TutorPersona } from './TutorPersona';
@@ -13,6 +13,7 @@ import { LessonSummary } from './LessonSummary';
 import { ConceptBoard } from './ConceptBoard'; 
 import { Segment, SessionMode, UserProgress } from '../types';
 import { SFX } from '../services/sfx';
+import { GeminiChat } from './GeminiChat'; // Import Gemini Chat
 
 const motion = m as any;
 
@@ -38,30 +39,27 @@ export const LessonSession = ({
   const pageIndex = isNaN(parseInt(pageId || '0')) ? 0 : parseInt(pageId || '0');
   const lesson = LESSON_DATA.find(l => l.id === lessonId);
   
-  // ALGORITHM FIX: 
-  // Initialize mode strictly based on pageIndex. 
-  // Concept only on Page 0. All other pages start at Explore.
-  // This prevents the "Concept Flash" bug when navigating.
   const [mode, setMode] = useState<SessionMode>(
       pageIndex === 0 ? SessionMode.CONCEPT : SessionMode.EXPLORE
   );
 
   const [selectedSegment, setSelectedSegment] = useState<Segment | null>(null);
-  const [showTutorDialog, setShowTutorDialog] = useState(false); 
+  const [showTutorDialog, setShowTutorDialog] = useState(false);
   
-  // Logic to handle mode changes when pageId changes via prop (navigation)
+  // NEW: Chat Overlay State
+  const [isChatOpen, setIsChatOpen] = useState(false);
+
   useEffect(() => {
     if (pageIndex === 0 && mode !== SessionMode.CONCEPT && mode !== SessionMode.EXPLORE && mode !== SessionMode.BUILD) {
-         // Reset to concept only if we genuinely went back to start and reset everything
-         // But usually we want to stay in Explore if user navigates back to 0 from 1
+         // Reset
     } else if (pageIndex > 0) {
-         // Ensure we are not in Concept mode for pages > 0
          setMode(prev => prev === SessionMode.CONCEPT ? SessionMode.EXPLORE : SessionMode.EXPLORE);
     }
     
-    // Reset interaction states on page change
     setSelectedSegment(null);
     setShowTutorDialog(false); 
+    // Close chat on page change to reset context
+    setIsChatOpen(false);
     window.scrollTo(0,0);
   }, [pageIndex, lessonId]);
 
@@ -75,8 +73,6 @@ export const LessonSession = ({
     const currentSent = lesson?.sentences[pageIndex];
     if (mode === SessionMode.EXPLORE && currentSent?.tutorGuidance) {
         const hasSeen = progress.seenGuidanceIds?.includes(currentSent.id);
-        
-        // Delay the tutor dialog slightly for better UX
         if (!hasSeen) {
             const timer = setTimeout(() => {
                 SFX.playPop();
@@ -104,8 +100,6 @@ export const LessonSession = ({
     return null;
   }
 
-  // ALGORITHM FIX: Quiz is always the LAST sentence (The Final Boss)
-  // This ensures the quiz tests the most complex logic of the lesson.
   const finalQuizSentence = lesson.sentences[lesson.sentences.length - 1];
 
   const checkRelationship = (segId: string) => {
@@ -163,11 +157,11 @@ export const LessonSession = ({
   };
 
   const handleAskTeacher = () => {
-      navigate('/ask-teacher');
+      setIsChatOpen(true); // Open the overlay instead of navigating
   };
 
   return (
-    <div className="min-h-screen bg-[#f8f9fa] flex flex-col items-center">
+    <div className="min-h-screen bg-[#f8f9fa] flex flex-col items-center relative overflow-hidden">
       
       {/* HEADER */}
       <div className="w-full max-w-lg px-4 py-4 flex items-center gap-4 bg-white border-b border-gray-100 sticky top-0 z-30">
@@ -177,7 +171,7 @@ export const LessonSession = ({
         <div className="flex-1 flex flex-col justify-center">
            <div className="flex justify-between items-center mb-1">
              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-               {mode === SessionMode.CONCEPT ? 'TEORI (Concept)' : mode === SessionMode.EXPLORE ? 'FAHAMI (Explore)' : mode === SessionMode.BUILD ? 'SUSUN (Practice)' : mode === SessionMode.SUMMARY ? 'KHULASAH (Summary)' : 'UJIAN (Final)'}
+               {mode === SessionMode.CONCEPT ? 'TEORI' : mode === SessionMode.EXPLORE ? 'FAHAMI' : mode === SessionMode.BUILD ? 'SUSUN' : mode === SessionMode.SUMMARY ? 'KHULASAH' : 'UJIAN'}
              </span>
              {mode !== SessionMode.SUMMARY && mode !== SessionMode.CONCEPT && (
                  <span className="text-[10px] font-bold text-[#1a1512]">{pageIndex + 1} / {totalPages}</span>
@@ -254,10 +248,7 @@ export const LessonSession = ({
                         showHints={true} 
                       />
                     ))}
-                    {(!currentSentence.segments || currentSentence.segments.length === 0) && (
-                        <p className="text-red-500 font-sans text-sm">Data kalimat tidak tersedia.</p>
-                    )}
-                 </div>
+                  </div>
                </div>
 
                <p className="text-center text-[#1a1512] font-serif text-lg leading-relaxed px-4 mb-6">
@@ -307,7 +298,7 @@ export const LessonSession = ({
 
       {/* FOOTER NAV - Always Visible if Explore */}
       {mode === SessionMode.EXPLORE && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 safe-bottom z-50">
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 safe-bottom z-30">
             <div className="max-w-lg mx-auto flex justify-between items-center">
                 <button 
                   onClick={handlePrev}
@@ -329,7 +320,7 @@ export const LessonSession = ({
 
       {/* Back button for Build Mode */}
       {mode === SessionMode.BUILD && (
-         <div className="fixed bottom-0 left-0 right-0 p-4 safe-bottom z-40 pointer-events-none">
+         <div className="fixed bottom-0 left-0 right-0 p-4 safe-bottom z-30 pointer-events-none">
              <div className="max-w-lg mx-auto">
                 <button 
                   onClick={handlePrev}
@@ -340,6 +331,50 @@ export const LessonSession = ({
              </div>
          </div>
       )}
+
+      {/* NEW: FLOATING "ASK USTADZ" BUTTON (Only in Explore Mode) */}
+      {mode === SessionMode.EXPLORE && (
+        <motion.button
+            initial={{ scale: 0 }} animate={{ scale: 1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => { SFX.playPop(); setIsChatOpen(true); }}
+            className="fixed bottom-24 right-4 z-40 w-14 h-14 bg-[#1a1512] rounded-full flex items-center justify-center shadow-xl border-2 border-[#fdfbf7] hover:bg-gray-800 transition-colors"
+        >
+            <span className="font-arabic text-2xl text-white mt-1">ع</span>
+            <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
+        </motion.button>
+      )}
+
+      {/* NEW: USTADZ CHAT OVERLAY */}
+      <AnimatePresence>
+        {isChatOpen && (
+            <>
+                <motion.div 
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    className="fixed inset-0 bg-black/50 z-[50] backdrop-blur-sm"
+                    onClick={() => setIsChatOpen(false)}
+                />
+                <motion.div
+                    initial={{ y: "100%" }} animate={{ y: "0%" }} exit={{ y: "100%" }}
+                    transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                    className="fixed inset-x-0 bottom-0 top-16 z-[51] bg-[#f8f9fa] rounded-t-3xl shadow-2xl overflow-hidden flex flex-col max-w-lg mx-auto"
+                >
+                    <GeminiChat 
+                        navigate={navigate}
+                        isOverlay={true}
+                        onClose={() => setIsChatOpen(false)}
+                        contextData={{
+                            lessonTitle: lesson.title,
+                            sentenceArabic: currentSentence.arabicText,
+                            sentenceTranslation: currentSentence.translation,
+                            selectedWord: selectedSegment?.text,
+                            selectedRole: selectedSegment?.grammaticalRole
+                        }}
+                    />
+                </motion.div>
+            </>
+        )}
+      </AnimatePresence>
 
     </div>
   );

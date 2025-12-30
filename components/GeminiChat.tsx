@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion as m } from 'framer-motion';
-import { Send, User, Sparkles, ChevronLeft, Loader2 } from 'lucide-react';
+import { Send, User, Sparkles, ChevronLeft, Loader2, X } from 'lucide-react';
 import { sendMessageToGemini } from '../services/gemini';
 import { ChatMessage } from '../types';
 import { SFX } from '../services/sfx';
@@ -12,23 +12,48 @@ interface GeminiChatProps {
   navigate: (path: string) => void;
   seenGuidanceIds?: string[];
   onMarkSeen?: (id: string) => void;
-  isMainTab?: boolean; // New prop to adjust UI for tab view
+  isMainTab?: boolean; 
+  // NEW PROPS FOR CONTEXT AWARENESS
+  isOverlay?: boolean;
+  onClose?: () => void;
+  contextData?: {
+      lessonTitle: string;
+      sentenceArabic: string;
+      sentenceTranslation: string;
+      selectedWord?: string;
+      selectedRole?: string;
+  }
 }
 
-export const GeminiChat: React.FC<GeminiChatProps> = ({ navigate, isMainTab = false }) => {
+export const GeminiChat: React.FC<GeminiChatProps> = ({ 
+    navigate, 
+    isMainTab = false, 
+    isOverlay = false, 
+    onClose,
+    contextData 
+}) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMsg, setInputMsg] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Initial Greeting from Ustadz
+    // Dynamic Greeting based on context
+    let greeting = "Assalamu'alaikum. Ada yang membingungkanmu?";
+    if (contextData?.selectedWord) {
+        greeting = `Assalamu'alaikum. Ingin membahas kata "${contextData.selectedWord}" pada kalimat tadi? Ustadz siap jelaskan logikanya.`;
+    } else if (contextData) {
+        greeting = `Assalamu'alaikum. Kita sedang di bab "${contextData.lessonTitle}". Bagian mana yang sulit?`;
+    } else if (!isOverlay) {
+        greeting = "Assalamu'alaikum warahmatullah. Mari duduk sejenak. Apa yang ingin didiskusikan hari ini?";
+    }
+
     setMessages([{
         role: 'model',
-        text: "Assalamu'alaikum warahmatullah. Mari duduk sejenak. Bagian mana dari pelajaran tadi yang masih mengganjal di hati? Jangan sungkan bertanya, Ustadz di sini untuk menemani belajarmu.",
+        text: greeting,
         timestamp: Date.now()
     }]);
-  }, []);
+  }, [contextData?.selectedWord, contextData?.lessonTitle]); // Re-greet if context changes significantly
 
   useEffect(() => {
     scrollToBottom();
@@ -57,7 +82,21 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({ navigate, isMainTab = fa
         text: m.text
     }));
 
-    const responseText = await sendMessageToGemini(historyPayload, userText);
+    // CONSTRUCT CONTEXT STRING
+    let contextString = '';
+    if (contextData) {
+        contextString = `
+            INFORMASI PELAJARAN SAAT INI:
+            - Bab: ${contextData.lessonTitle}
+            - Kalimat Arab: ${contextData.sentenceArabic}
+            - Arti Kalimat: ${contextData.sentenceTranslation}
+            ${contextData.selectedWord ? `- FOKUS PENGGUNA (Kata yang di-klik): "${contextData.selectedWord}" (Peran: ${contextData.selectedRole || 'Belum tahu'})` : ''}
+            
+            Instruksi: Jawab pertanyaan pengguna dengan mengacu pada informasi di atas. Jika pengguna bertanya "Kenapa ini?", rujuk ke kata yang dipilih.
+        `;
+    }
+
+    const responseText = await sendMessageToGemini(historyPayload, userText, contextString);
     
     setIsTyping(false);
     SFX.playPop();
@@ -69,35 +108,43 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({ navigate, isMainTab = fa
   };
 
   return (
-    <div className={`flex flex-col h-screen bg-[#f8f9fa] safe-bottom ${isMainTab ? 'pb-0' : 'pb-20'}`}>
+    <div className={`flex flex-col bg-[#f8f9fa] ${isOverlay ? 'h-full rounded-t-3xl overflow-hidden' : 'h-screen safe-bottom'} ${isMainTab ? 'pb-0' : isOverlay ? 'pb-0' : 'pb-20'}`}>
+       
        {/* HEADER */}
-       <div className="bg-white px-4 py-4 border-b border-gray-100 flex items-center gap-3 shadow-sm sticky top-0 z-20">
-          {!isMainTab && (
+       <div className={`bg-white px-4 py-4 border-b border-gray-100 flex items-center gap-3 shadow-sm sticky top-0 z-20 ${isOverlay ? 'bg-[#fdfbf7]' : ''}`}>
+          {!isMainTab && !isOverlay && (
               <button onClick={() => navigate('/contents')} className="p-2 -ml-2 text-gray-400 hover:text-[#1a1512]">
                  <ChevronLeft className="w-6 h-6" />
               </button>
           )}
+          
           <div className="w-10 h-10 rounded-full bg-[#1a1512] flex items-center justify-center border-2 border-[#8a1c1c]">
              <span className="font-arabic text-xl text-white mt-1">ع</span>
           </div>
-          <div>
-             <h3 className="font-serif font-bold text-[#1a1512]">Ustadz Logika (AI)</h3>
-             <p className="text-[10px] text-green-600 font-bold uppercase flex items-center gap-1">
-                <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
-                Online
-             </p>
+          
+          <div className="flex-1">
+             <h3 className="font-serif font-bold text-[#1a1512]">Ustadz Logika</h3>
+             {isOverlay && contextData?.selectedWord ? (
+                 <p className="text-[10px] text-[#8a1c1c] font-bold uppercase truncate max-w-[150px]">
+                    Bahas: {contextData.selectedWord}
+                 </p>
+             ) : (
+                <p className="text-[10px] text-green-600 font-bold uppercase flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+                    Online
+                </p>
+             )}
           </div>
+
+          {isOverlay && onClose && (
+              <button onClick={onClose} className="p-2 bg-gray-100 rounded-full text-gray-500 hover:bg-gray-200">
+                  <X className="w-5 h-5" />
+              </button>
+          )}
        </div>
 
        {/* CHAT AREA */}
        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {messages.length === 0 && (
-             <div className="text-center py-10 opacity-50">
-                <Sparkles className="w-12 h-12 mx-auto text-gray-300 mb-4" />
-                <p className="text-sm">Mulai percakapan dengan salam...</p>
-             </div>
-          )}
-
           {messages.map((msg, idx) => {
              const isModel = msg.role === 'model';
              return (
@@ -145,7 +192,6 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({ navigate, isMainTab = fa
        </div>
 
        {/* INPUT AREA */}
-       {/* Sticky bottom behavior differs based on tab mode to avoid overlap with bottom nav */}
        <div className={`bg-white p-4 border-t border-gray-100 sticky ${isMainTab ? 'bottom-16 border-b' : 'bottom-0'}`}>
           <div className="flex gap-2 max-w-lg mx-auto">
              <input 
@@ -153,7 +199,7 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({ navigate, isMainTab = fa
                 value={inputMsg}
                 onChange={(e) => setInputMsg(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                placeholder="Tanya tentang Nahwu..." 
+                placeholder={contextData?.selectedWord ? `Tanya ttg "${contextData.selectedWord}"...` : "Tanya sesuatu..."}
                 className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#8a1c1c] transition-colors"
              />
              <button 
