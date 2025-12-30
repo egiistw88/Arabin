@@ -1,33 +1,21 @@
 
 /**
  * Simple Sound Effects Engine using Web Audio API
- * Generates sounds synthetically to keep the app lightweight (no mp3 files).
- * Handles AudioContext states for browser autoplay policies.
+ * Uses the shared AudioContext from AudioService to prevent hardware resource limits.
  */
-
-let audioCtx: AudioContext | null = null;
-
-const initAudio = () => {
-  if (!audioCtx) {
-    // Cross-browser support
-    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-    if (AudioContextClass) {
-        audioCtx = new AudioContextClass();
-    }
-  }
-  
-  // Resume context if suspended (Chrome/Safari Autoplay Policy)
-  if (audioCtx && audioCtx.state === 'suspended') {
-    audioCtx.resume().catch(e => console.warn("Audio Context resume failed", e));
-  }
-  
-  return audioCtx;
-};
+import { audioService } from './audio';
 
 // Helper: Create an oscillator with envelope
 const playTone = (freq: number, type: OscillatorType, duration: number, vol: number = 0.1, delay: number = 0) => {
-  const ctx = initAudio();
-  if (!ctx) return; // Fail gracefully if Web Audio API not supported
+  // Use the shared context!
+  const ctx = audioService.getAudioContext();
+  
+  if (!ctx) return; 
+
+  // Ensure context is running (vital for iOS)
+  if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+  }
 
   try {
     const osc = ctx.createOscillator();
@@ -47,7 +35,7 @@ const playTone = (freq: number, type: OscillatorType, duration: number, vol: num
     osc.stop(ctx.currentTime + delay + duration);
   } catch (e) {
       // Ignore audio errors to prevent app crash
-      console.warn("SFX Error:", e);
+      // console.warn("SFX Error:", e);
   }
 };
 

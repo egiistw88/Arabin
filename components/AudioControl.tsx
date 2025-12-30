@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect, useRef } from 'react';
-import { Volume2, Pause, VolumeX } from 'lucide-react'; // Added VolumeX
+import { Volume2, Pause, VolumeX, Loader2 } from 'lucide-react'; 
 import { motion as m } from 'framer-motion';
-import { playArabicAudio } from '../services/audio';
+import { playArabicAudio, audioService } from '../services/audio';
 
 const motion = m as any;
 
@@ -15,29 +16,25 @@ export const AudioControl: React.FC<AudioControlProps> = ({ text, audioSrc }) =>
   const [error, setError] = useState(false);
   const cleanupRef = useRef<(() => void) | null>(null);
 
-  // Reset state immediately if text changes
   useEffect(() => {
+    // If text changes (e.g., navigating to next page), hard stop previous audio
     stopAudio();
     setError(false);
-  }, [text]);
-
-  // Ensure cleanup on unmount
-  useEffect(() => {
     return () => stopAudio();
-  }, []);
+  }, [text]);
 
   const stopAudio = () => {
     if (cleanupRef.current) {
         cleanupRef.current();
         cleanupRef.current = null;
     }
+    audioService.stopAll();
     setIsPlaying(false);
   };
 
   const togglePlay = () => {
     if (error) {
-        // Reset error state on retry
-        setError(false);
+        setError(false); // Retry mode
     }
 
     if (isPlaying) {
@@ -46,6 +43,7 @@ export const AudioControl: React.FC<AudioControlProps> = ({ text, audioSrc }) =>
       setIsPlaying(true);
       
       try {
+          // Play returns a cleanup function
           cleanupRef.current = playArabicAudio(text, audioSrc, () => {
               setIsPlaying(false);
               cleanupRef.current = null;
@@ -73,7 +71,7 @@ export const AudioControl: React.FC<AudioControlProps> = ({ text, audioSrc }) =>
                 : 'bg-white text-[#8a1c1c] border-[#8a1c1c] hover:bg-[#8a1c1c]/5'
         }
       `}
-      title={error ? "Gagal memutar suara" : "Putar suara"}
+      title={error ? "Coba lagi" : isPlaying ? "Hentikan" : "Putar suara"}
     >
       {error ? (
           <VolumeX className="w-4 h-4" />
