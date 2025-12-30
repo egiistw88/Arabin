@@ -10,7 +10,7 @@ import { SentenceBuilder } from './SentenceBuilder';
 import { AudioControl } from './AudioControl';
 import { TutorDialog } from './TutorDialog'; 
 import { LessonSummary } from './LessonSummary';
-import { ConceptBoard } from './ConceptBoard'; // NEW IMPORT
+import { ConceptBoard } from './ConceptBoard'; 
 import { Segment, SessionMode, UserProgress } from '../types';
 import { SFX } from '../services/sfx';
 
@@ -36,35 +36,33 @@ export const LessonSession = ({
     markGuidanceSeen
 }: LessonSessionProps) => {
   const pageIndex = isNaN(parseInt(pageId || '0')) ? 0 : parseInt(pageId || '0');
-  
   const lesson = LESSON_DATA.find(l => l.id === lessonId);
   
-  const [mode, setMode] = useState<SessionMode>(SessionMode.CONCEPT); // Start with Concept
+  // ALGORITHM FIX: 
+  // Initialize mode strictly based on pageIndex. 
+  // Concept only on Page 0. All other pages start at Explore.
+  // This prevents the "Concept Flash" bug when navigating.
+  const [mode, setMode] = useState<SessionMode>(
+      pageIndex === 0 ? SessionMode.CONCEPT : SessionMode.EXPLORE
+  );
+
   const [selectedSegment, setSelectedSegment] = useState<Segment | null>(null);
-  const [quizSentence, setQuizSentence] = useState<any>(null);
   const [showTutorDialog, setShowTutorDialog] = useState(false); 
   
+  // Logic to handle mode changes when pageId changes via prop (navigation)
   useEffect(() => {
-    if (lesson && lesson.sentences.length > 0) {
-        const randomIdx = Math.floor(Math.random() * lesson.sentences.length);
-        setQuizSentence(lesson.sentences[randomIdx]);
-    }
-  }, [lessonId]); 
-  
-  // Logic to skip Concept if not page 0, OR handle direct navigation
-  useEffect(() => {
-    // If navigating to a middle page, skip concept. 
-    // If page is 0, we can show Concept, UNLESS we are already in summary/quiz.
-    if (pageIndex > 0 && mode === SessionMode.CONCEPT) {
-        setMode(SessionMode.EXPLORE);
+    if (pageIndex === 0 && mode !== SessionMode.CONCEPT && mode !== SessionMode.EXPLORE && mode !== SessionMode.BUILD) {
+         // Reset to concept only if we genuinely went back to start and reset everything
+         // But usually we want to stay in Explore if user navigates back to 0 from 1
+    } else if (pageIndex > 0) {
+         // Ensure we are not in Concept mode for pages > 0
+         setMode(prev => prev === SessionMode.CONCEPT ? SessionMode.EXPLORE : SessionMode.EXPLORE);
     }
     
-    // Reset selected items when page changes
-    if (mode === SessionMode.EXPLORE || mode === SessionMode.BUILD) {
-         setSelectedSegment(null);
-         setShowTutorDialog(false); 
-         window.scrollTo(0,0);
-    }
+    // Reset interaction states on page change
+    setSelectedSegment(null);
+    setShowTutorDialog(false); 
+    window.scrollTo(0,0);
   }, [pageIndex, lessonId]);
 
   useEffect(() => {
@@ -78,21 +76,18 @@ export const LessonSession = ({
     if (mode === SessionMode.EXPLORE && currentSent?.tutorGuidance) {
         const hasSeen = progress.seenGuidanceIds?.includes(currentSent.id);
         
+        // Delay the tutor dialog slightly for better UX
         if (!hasSeen) {
             const timer = setTimeout(() => {
                 SFX.playPop();
                 setShowTutorDialog(true);
-            }, 600);
+            }, 800);
             return () => clearTimeout(timer);
         }
     }
   }, [pageIndex, mode, lesson]);
 
-  if (!lesson) {
-    setTimeout(() => navigate('/contents'), 0);
-    return null;
-  }
-  if (!lesson.sentences || lesson.sentences.length === 0) {
+  if (!lesson || !lesson.sentences || lesson.sentences.length === 0) {
     setTimeout(() => navigate('/contents'), 0);
     return null;
   }
@@ -108,6 +103,10 @@ export const LessonSession = ({
     setTimeout(() => navigate('/contents'), 0);
     return null;
   }
+
+  // ALGORITHM FIX: Quiz is always the LAST sentence (The Final Boss)
+  // This ensures the quiz tests the most complex logic of the lesson.
+  const finalQuizSentence = lesson.sentences[lesson.sentences.length - 1];
 
   const checkRelationship = (segId: string) => {
     if (!selectedSegment) return false;
@@ -166,8 +165,6 @@ export const LessonSession = ({
   const handleAskTeacher = () => {
       navigate('/ask-teacher');
   };
-
-  const finalQuizSentence = quizSentence || currentSentence;
 
   return (
     <div className="min-h-screen bg-[#f8f9fa] flex flex-col items-center">
@@ -303,7 +300,7 @@ export const LessonSession = ({
             <LessonSummary 
                 summary={lesson.summary} 
                 onComplete={handleSummaryComplete}
-                onAskTeacher={handleAskTeacher} // Pass the handler
+                onAskTeacher={handleAskTeacher} 
             />
         )}
       </div>

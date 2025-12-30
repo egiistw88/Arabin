@@ -57,7 +57,7 @@ export const LESSON_DATA: Lesson[] = [
       { arabic: 'حِمَارٌ', latin: 'Himarun', meaning: 'Keledai' },
     ],
     sentences: [
-      // STEP 1: Basic Recognition
+      // STEP 1: PENGENALAN (Introduction)
       {
         id: '1_1',
         arabicText: 'هَذَا بَيْتٌ',
@@ -68,6 +68,7 @@ export const LESSON_DATA: Lesson[] = [
           { id: '1_1_2', text: 'بَيْتٌ', type: WordType.NOUN, logicId: LogicId.DEFAULT_NOUN, grammaticalRole: 'Khobar', explanation: 'Rumah.', deepLogic: 'Nakirah (Umum) ditandai dengan Tanwin.' }
         ]
       },
+      // STEP 2: PENGUATAN (Reinforcement)
       {
         id: '1_2',
         arabicText: 'هَذَا مَسْجِدٌ',
@@ -77,7 +78,7 @@ export const LESSON_DATA: Lesson[] = [
           { id: '1_2_2', text: 'مَسْجِدٌ', type: WordType.NOUN, logicId: LogicId.DEFAULT_NOUN, grammaticalRole: 'Khobar', explanation: 'Masjid.' }
         ]
       },
-      // STEP 2: Asking "What"
+      // STEP 3: BERTANYA BENDA (Question - Inanimate)
       {
         id: '1_3',
         arabicText: 'مَا هَذَا؟ هَذَا قَلَمٌ',
@@ -90,7 +91,7 @@ export const LESSON_DATA: Lesson[] = [
           { id: '1_3_4', text: 'قَلَمٌ', type: WordType.NOUN, logicId: LogicId.DEFAULT_NOUN, grammaticalRole: 'Khobar', explanation: 'Pena.' }
         ]
       },
-      // STEP 3: Yes/No Questions (The Hamzah)
+      // STEP 4: KONFIRMASI (Confirmation Yes)
       {
         id: '1_4',
         arabicText: 'أَهَذَا بَيْتٌ؟ نَعَمْ، هَذَا بَيْتٌ',
@@ -105,7 +106,7 @@ export const LESSON_DATA: Lesson[] = [
           { id: '1_4_6', text: 'بَيْتٌ', type: WordType.NOUN, logicId: LogicId.DEFAULT_NOUN, grammaticalRole: 'Khobar', explanation: 'Rumah.' }
         ]
       },
-      // STEP 4: Negation (No)
+      // STEP 5: NEGASI (Confirmation No)
       {
         id: '1_5',
         arabicText: 'أَهَذَا سَرِيْرٌ؟ لَا، هَذَا كُرْسِيٌّ',
@@ -120,12 +121,12 @@ export const LESSON_DATA: Lesson[] = [
           { id: '1_5_6', text: 'كُرْسِيٌّ', type: WordType.NOUN, logicId: LogicId.DEFAULT_NOUN, grammaticalRole: 'Khobar', explanation: 'Kursi.' }
         ]
       },
-      // STEP 5: Humans (Man)
+      // STEP 6: MAKHLUK BERAKAL (Rational Beings)
       {
         id: '1_6',
         arabicText: 'مَنْ هَذَا؟ هَذَا طَبِيْبٌ',
         translation: 'Siapa ini? Ini seorang dokter.',
-        tutorGuidance: "Dokter itu manusia (berakal). Jadi JANGAN pakai 'Ma', tapi pakailah 'MAN'.",
+        tutorGuidance: "Dokter itu manusia (berakal). Jadi JANGAN pakai 'Ma', tapi pakailah 'MAN' (Siapa).",
         segments: [
           { id: '1_6_1', text: 'مَنْ', type: WordType.PARTICLE, logicId: LogicId.QUESTION_TOOL, grammaticalRole: 'Istifham', explanation: 'Siapa (Berakal).' },
           { id: '1_6_2', text: 'هَذَا', type: WordType.NOUN, logicId: LogicId.DEMONSTRATIVE, grammaticalRole: 'Mubtada', explanation: 'Ini.' },
@@ -133,18 +134,18 @@ export const LESSON_DATA: Lesson[] = [
           { id: '1_6_4', text: 'طَبِيْبٌ', type: WordType.NOUN, logicId: LogicId.DEFAULT_NOUN, grammaticalRole: 'Khobar', explanation: 'Dokter.' }
         ]
       },
-      // STEP 6: Contrast (Man vs Ma)
+      // STEP 7: KOMPARASI (The Final Logic)
       {
         id: '1_7',
         arabicText: 'هَذَا وَلَدٌ وَ هَذَا حِمَارٌ',
         translation: 'Ini seorang anak dan ini seekor keledai.',
-        tutorGuidance: "Latihan membedakan. Walad (Anak) itu Manusia. Himar (Keledai) itu Hewan. Perhatikan konteksnya.",
+        tutorGuidance: "Latihan membedakan. Walad (Anak) itu Manusia. Himar (Keledai) itu Hewan.",
         segments: [
           { id: '1_7_1', text: 'هَذَا', type: WordType.NOUN, logicId: LogicId.DEMONSTRATIVE, grammaticalRole: 'Mubtada', explanation: 'Ini.' },
-          { id: '1_7_2', text: 'وَلَدٌ', type: WordType.NOUN, logicId: LogicId.DEFAULT_NOUN, grammaticalRole: 'Khobar', explanation: 'Anak.' },
+          { id: '1_7_2', text: 'وَلَدٌ', type: WordType.NOUN, logicId: LogicId.DEFAULT_NOUN, grammaticalRole: 'Khobar', explanation: 'Anak (Manusia).' },
           { id: '1_7_3', text: 'وَ', type: WordType.PARTICLE, logicId: LogicId.DEFAULT_NOUN, grammaticalRole: 'Athof', explanation: 'Dan.' },
           { id: '1_7_4', text: 'هَذَا', type: WordType.NOUN, logicId: LogicId.DEMONSTRATIVE, grammaticalRole: 'Mubtada', explanation: 'Ini.' },
-          { id: '1_7_5', text: 'حِمَارٌ', type: WordType.NOUN, logicId: LogicId.DEFAULT_NOUN, grammaticalRole: 'Khobar', explanation: 'Keledai.' }
+          { id: '1_7_5', text: 'حِمَارٌ', type: WordType.NOUN, logicId: LogicId.DEFAULT_NOUN, grammaticalRole: 'Khobar', explanation: 'Keledai (Hewan).' }
         ]
       }
     ]
