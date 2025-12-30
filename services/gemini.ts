@@ -22,25 +22,18 @@ export const sendMessageToGemini = async (
   context?: string
 ): Promise<string> => {
   
-  // 1. Validate API Key Availability
-  if (!process.env.API_KEY) {
-      console.error("API_KEY is missing.");
-      return "⚠️ Kunci akses (API Key) belum diatur. Mohon konfigurasi file .env Anda.";
-  }
-
   try {
+    // Initialize SDK directly. 
+    // If API_KEY is missing/invalid, the SDK constructor or generateContent call will throw an error,
+    // which will be caught by the catch block below.
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     
-    // 2. Build Content Array with Strict Alternation Rules
+    // 1. Build Content Array with Strict Alternation Rules
     // Gemini API throws 400 if:
     // - History starts with 'model'
     // - Roles do not alternate (User -> Model -> User)
     
     const contents: Content[] = [];
-    
-    // We iterate through the ENTIRE history (including the latest message)
-    // Note: We don't rely on 'lastUserMessage' param for construction, we assume it's in 'history'.
-    // If 'history' contains duplicates of the last message due to UI state, we handle it carefully.
     
     for (const msg of history) {
         const role = msg.role;
@@ -62,12 +55,10 @@ export const sendMessageToGemini = async (
             // Append text to the previous turn of the same role
             const previousContent = contents[contents.length - 1];
             
-            // Safe access to parts (Fix for TS2532)
+            // Safe access to parts
             if (previousContent.parts && previousContent.parts.length > 0) {
                 const lastPart = previousContent.parts[0];
                 if (lastPart && 'text' in lastPart) {
-                    // We add a newline to separate thoughts. 
-                    // Casting to any to avoid strict readonly checks if present in SDK types
                     (lastPart as any).text += `\n\n${text}`;
                 }
             }
@@ -80,7 +71,7 @@ export const sendMessageToGemini = async (
         }
     }
 
-    // 3. Final Safety: The conversation MUST end with a User message for the model to reply
+    // 2. Final Safety: The conversation MUST end with a User message for the model to reply
     if (contents.length === 0 || contents[contents.length - 1].role !== 'user') {
         // If we filtered everything out (e.g. only greetings), push the user prompt manually
         const finalPrompt = context 
@@ -93,7 +84,7 @@ export const sendMessageToGemini = async (
         });
     }
 
-    // 4. Call API
+    // 3. Call API
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview', 
       contents: contents, 
@@ -113,7 +104,7 @@ export const sendMessageToGemini = async (
     
     if (error.message) {
         if (error.message.includes('400')) errorMessage = "Format percakapan ditolak (400). Mulai chat baru.";
-        else if (error.message.includes('401')) errorMessage = "API Key tidak valid (401).";
+        else if (error.message.includes('401') || error.message.includes('API_KEY')) errorMessage = "Izin akses ditolak (Invalid API Key).";
         else if (error.message.includes('429')) errorMessage = "Terlalu banyak permintaan (429). Tunggu sebentar.";
         else if (error.message.includes('404')) errorMessage = "Model AI sedang istirahat (404).";
         else errorMessage = `Error: ${error.message}`;
