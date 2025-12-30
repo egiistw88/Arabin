@@ -3,8 +3,10 @@ import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig(({ mode }) => {
-  // Cast process to any to avoid "Property 'cwd' does not exist on type 'Process'" error
+  // Load env file based on `mode` in the current working directory.
+  // Set the third parameter to '' to load all env regardless of the `VITE_` prefix.
   const env = loadEnv(mode, (process as any).cwd(), '');
+
   return {
     plugins: [react()],
     publicDir: 'public', 
@@ -17,10 +19,12 @@ export default defineConfig(({ mode }) => {
       host: true
     },
     define: {
-      // Polyfill process.env object to avoid "process is not defined" errors
-      'process.env': {},
-      // Replaces process.env.API_KEY in client code with the actual string value
-      'process.env.API_KEY': JSON.stringify(env.API_KEY)
+      // Properly stringify the process.env object to include API_KEY.
+      // This avoids conflicts where 'process.env' is defined as {} effectively wiping out nested keys.
+      'process.env': JSON.stringify({
+        API_KEY: env.API_KEY,
+        NODE_ENV: mode
+      })
     }
   };
 });

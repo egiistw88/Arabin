@@ -22,23 +22,19 @@ export const sendMessageToGemini = async (
   context?: string
 ): Promise<string> => {
   
-  // 1. Safe Extraction of API Key
-  // We check explicitly to prevent the SDK from throwing a hard error
+  // 1. Validate API Key Availability
+  // Accessing process.env.API_KEY directly. The updated vite.config.ts ensures this populates correctly.
   const apiKey = process.env.API_KEY;
 
-  if (!apiKey || apiKey === 'undefined' || apiKey === '') {
-      console.error("API_KEY is missing in environment variables.");
-      return "⚠️ Assalamu'alaikum. Mohon maaf, Ustadz belum memegang kunci akses (API Key tidak ditemukan). Mohon pastikan file .env sudah diatur dengan benar.";
+  if (!apiKey || apiKey === '') {
+      console.error("API_KEY is missing or empty.");
+      return "⚠️ Assalamu'alaikum. Mohon maaf, Ustadz belum memegang kunci akses (API Key). Mohon pastikan file .env berisi API_KEY yang valid.";
   }
 
   try {
     const ai = new GoogleGenAI({ apiKey: apiKey });
     
     // 2. Build Content Array with Strict Alternation Rules
-    // Gemini API throws 400 if:
-    // - History starts with 'model'
-    // - Roles do not alternate (User -> Model -> User)
-    
     const contents: Content[] = [];
     
     for (const msg of history) {
@@ -58,10 +54,9 @@ export const sendMessageToGemini = async (
 
         // Merge logic to prevent "User -> User" or "Model -> Model"
         if (contents.length > 0 && contents[contents.length - 1].role === role) {
-            // Append text to the previous turn of the same role
             const previousContent = contents[contents.length - 1];
             
-            // Safe access to parts
+            // Safe access to parts to avoid TS errors
             if (previousContent.parts && previousContent.parts.length > 0) {
                 const lastPart = previousContent.parts[0];
                 if (lastPart && 'text' in lastPart) {
@@ -77,9 +72,8 @@ export const sendMessageToGemini = async (
         }
     }
 
-    // 3. Final Safety: The conversation MUST end with a User message for the model to reply
+    // 3. Final Safety: The conversation MUST end with a User message
     if (contents.length === 0 || contents[contents.length - 1].role !== 'user') {
-        // If we filtered everything out (e.g. only greetings), push the user prompt manually
         const finalPrompt = context 
             ? `[KONTEKS]\n${context}\n\n[PERTANYAAN]\n${lastUserMessage}` 
             : lastUserMessage;
@@ -105,7 +99,6 @@ export const sendMessageToGemini = async (
   } catch (error: any) {
     console.error("Gemini Error:", error);
     
-    // Return detailed error for debugging in UI
     let errorMessage = "Koneksi batin terputus (Network Error).";
     
     if (error.message) {
@@ -113,7 +106,6 @@ export const sendMessageToGemini = async (
         else if (error.message.includes('401') || error.message.includes('API_KEY')) errorMessage = "Izin akses ditolak (Invalid API Key).";
         else if (error.message.includes('429')) errorMessage = "Terlalu banyak permintaan (429). Tunggu sebentar.";
         else if (error.message.includes('404')) errorMessage = "Model AI sedang istirahat (404).";
-        else if (error.message.includes('Browser')) errorMessage = "API Key belum diatur dengan benar di .env";
         else errorMessage = `Error: ${error.message}`;
     }
 
