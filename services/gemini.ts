@@ -1,5 +1,5 @@
 
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Content } from "@google/genai";
 
 const SYSTEM_INSTRUCTION = `
 Anda adalah "Ustadz Logika", seorang pembimbing bahasa Arab yang sepuh, bijaksana, dan sangat sabar. 
@@ -16,97 +16,103 @@ Struktur Jawaban:
 - **Paragraf 3 (Simpulan)**: Kunci ingatan singkat.
 `;
 
-/**
- * Helper to ensure the conversation history is perfectly valid for Gemini API.
- * Rules:
- * 1. Must start with 'user'.
- * 2. Must alternate 'user', 'model', 'user', 'model'.
- */
-const sanitizeHistory = (history: {role: 'user'|'model', text: string}[]) => {
-    const cleanHistory: {role: 'user'|'model', parts: {text: string}[]}[] = [];
-    
-    // 1. Skip all initial 'model' messages (Wait for the first 'user')
-    let startIndex = history.findIndex(h => h.role === 'user');
-    if (startIndex === -1) return []; // No user messages yet
-
-    let lastRole = '';
-
-    for (let i = startIndex; i < history.length; i++) {
-        const msg = history[i];
-        
-        // 2. Handle duplicate roles (Merge text if User sends twice in a row)
-        if (msg.role === lastRole) {
-            const lastEntry = cleanHistory[cleanHistory.length - 1];
-            if (lastEntry && lastEntry.parts[0]) {
-                lastEntry.parts[0].text += `\n\n(Tambahan): ${msg.text}`;
-            }
-        } else {
-            // 3. Normal alternating push
-            cleanHistory.push({
-                role: msg.role,
-                parts: [{ text: msg.text }]
-            });
-            lastRole = msg.role;
-        }
-    }
-    return cleanHistory;
-};
-
 export const sendMessageToGemini = async (
   history: {role: 'user'|'model', text: string}[], 
   lastUserMessage: string,
   context?: string
 ): Promise<string> => {
+  
+  // 1. Validate API Key Availability
+  if (!process.env.API_KEY) {
+      console.error("API_KEY is missing.");
+      return "⚠️ Kunci akses (API Key) belum diatur. Mohon konfigurasi file .env Anda.";
+  }
+
   try {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     
-    // 1. Remove the active/pending message from history to avoid duplication
-    // (UI usually updates state optimistically, so 'history' might already contain 'lastUserMessage')
-    // We want to reconstruct the LAST message strictly with Context.
-    const pastHistory = history.filter(h => h.text !== lastUserMessage);
+    // 2. Build Content Array with Strict Alternation Rules
+    // Gemini API throws 400 if:
+    // - History starts with 'model'
+    // - Roles do not alternate (User -> Model -> User)
+    
+    const contents: Content[] = [];
+    
+    // We iterate through the ENTIRE history (including the latest message)
+    // Note: We don't rely on 'lastUserMessage' param for construction, we assume it's in 'history'.
+    // If 'history' contains duplicates of the last message due to UI state, we handle it carefully.
+    
+    for (const msg of history) {
+        const role = msg.role;
+        let text = msg.text;
 
-    // 2. Sanitize Past History (Remove greetings, fix alternation)
-    const validPastTurns = sanitizeHistory(pastHistory);
+        // SKIP initial model messages (Greeting) if it's the start of conversation
+        if (contents.length === 0 && role === 'model') {
+            continue;
+        }
 
-    // 3. Construct the Final Turn with Context Injection
-    // The context is HIDDEN instruction wrapped with the user's visible question.
-    const finalPrompt = context 
-      ? `[SISTEM: Jawab pertanyaan berikut berdasarkan konteks ini]\n${context}\n\n[USER BERTANYA]\n${lastUserMessage}` 
-      : lastUserMessage;
+        // Context Injection (Only for the very last user message)
+        const isLastMessage = msg === history[history.length - 1];
+        if (isLastMessage && role === 'user' && context) {
+            text = `[KONTEKS APLIKASI]\n${context}\n\n[PERTANYAAN PENGGUNA]\n${text}`;
+        }
 
-    // 4. Combine
-    const finalContent = [
-      ...validPastTurns,
-      {
-        role: 'user',
-        parts: [{ text: finalPrompt }]
-      }
-    ];
+        // Merge logic to prevent "User -> User" or "Model -> Model"
+        if (contents.length > 0 && contents[contents.length - 1].role === role) {
+            // Append text to the previous turn of the same role
+            const lastPart = contents[contents.length - 1].parts[0];
+            if (lastPart && 'text' in lastPart) {
+                // We add a newline to separate thoughts
+                (lastPart as any).text += `\n\n${text}`;
+            }
+        } else {
+            // New turn
+            contents.push({
+                role: role,
+                parts: [{ text }]
+            });
+        }
+    }
 
-    // 5. Call API
+    // 3. Final Safety: The conversation MUST end with a User message for the model to reply
+    if (contents.length === 0 || contents[contents.length - 1].role !== 'user') {
+        // If we filtered everything out (e.g. only greetings), push the user prompt manually
+        const finalPrompt = context 
+            ? `[KONTEKS]\n${context}\n\n[PERTANYAAN]\n${lastUserMessage}` 
+            : lastUserMessage;
+            
+        contents.push({
+            role: 'user',
+            parts: [{ text: finalPrompt }]
+        });
+    }
+
+    // 4. Call API
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview', // Ensure we use a valid model name
-      contents: finalContent, 
+      model: 'gemini-3-flash-preview', 
+      contents: contents, 
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
         temperature: 0.7, 
       }
     });
 
-    return response.text || "Hmm, Ustadz perlu berpikir sejenak. Coba ulangi pertanyaanmu.";
+    return response.text || "Hmm, Ustadz perlu berpikir sejenak. Coba tanyakan lagi.";
     
   } catch (error: any) {
     console.error("Gemini Error:", error);
     
-    // Return specific error hints for debugging
-    if (error.message?.includes('400')) {
-        return "Maaf, Ustadz kurang paham urutan percakapan kita (Error 400). Coba mulai topik baru.";
-    } else if (error.message?.includes('429')) {
-        return "Ustadz sedang melayani banyak murid (Quota Exceeded). Tunggu sebentar ya.";
-    } else if (error.message?.includes('API_KEY')) {
-        return "Kunci akses Ustadz bermasalah (Invalid API Key).";
+    // Return detailed error for debugging in UI
+    let errorMessage = "Koneksi batin terputus (Network Error).";
+    
+    if (error.message) {
+        if (error.message.includes('400')) errorMessage = "Format percakapan ditolak (400). Mulai chat baru.";
+        else if (error.message.includes('401')) errorMessage = "API Key tidak valid (401).";
+        else if (error.message.includes('429')) errorMessage = "Terlalu banyak permintaan (429). Tunggu sebentar.";
+        else if (error.message.includes('404')) errorMessage = "Model AI sedang istirahat (404).";
+        else errorMessage = `Error: ${error.message}`;
     }
 
-    return "Mohon maaf, koneksi batin terputus (Network Error). Pastikan internet lancar.";
+    return `Mohon maaf, ${errorMessage}`;
   }
 };
