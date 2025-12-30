@@ -113,9 +113,6 @@ class AudioService {
       this.voices.find(v => v.lang === 'ar-SA') ||
       this.voices.find(v => v.lang.startsWith('ar')) ||
       null;
-      
-    // Debugging (Optional)
-    // if (this.preferredVoice) console.log("Selected Voice:", this.preferredVoice.name);
   }
 
   /**
@@ -233,15 +230,9 @@ class AudioService {
 
     // SYNCHRONOUS EXECUTION
     // Do not put setTimeout here. It breaks iOS.
+    // Removed Android pause/resume hack as it caused freezing issues.
     try {
       this.synth.speak(utterance);
-      
-      // Android Wake-Lock Hack
-      // If the engine is idle, pausing and resuming wakes it up.
-      if (navigator.userAgent.toLowerCase().includes('android')) {
-        this.synth.pause();
-        this.synth.resume();
-      }
     } catch (e) {
       console.error("TTS Critical Error", e);
       if (onEnd) onEnd();
